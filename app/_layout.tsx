@@ -1,17 +1,16 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { AuthProvider } from '@/lib/auth';
 
 export default function RootLayout() {
   return (
-    <>
-      <Stack
-        screenOptions={{
-          headerShown: true,
-        }}
-      >
-        <Stack.Screen name="index" options={{ title: 'Nackliye' }} />
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
       </Stack>
-      <StatusBar style="auto" />
-    </>
+      <StatusBar style="dark" />
+    </AuthProvider>
   );
 }

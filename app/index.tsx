@@ -1,28 +1,34 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Redirect } from 'expo-router';
+import { useAuth } from '@/lib/auth';
 
-export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Nackliye</Text>
-      <Text style={styles.subtitle}>Logistics & Freight Sharing</Text>
-    </View>
-  );
+export default function Index() {
+  const { session, isLoading, profileComplete } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#FF6B35" />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <Redirect href="/(auth)/phone" />;
+  }
+
+  if (!profileComplete) {
+    return <Redirect href="/(auth)/complete-profile" />;
+  }
+
+  return <Redirect href="/(tabs)" />;
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loading: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
 });

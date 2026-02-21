@@ -1,0 +1,63 @@
+# Nakliye Uygulamasi - Cursor Rules
+
+## Proje Hakkinda
+
+Bu bir nakliye/yuk paylasim mobil uygulamasidir.
+Turkiye'deki kamyon soforleri ve yuk gondericileri icin.
+Hedef kitle cogunlukla ilkokul/ortaokul mezunu nakliyeciler.
+
+## Teknoloji Stack
+
+- Frontend: React Native + Expo (expo-router)
+- Styling: NativeWind (Tailwind CSS for RN)
+- Backend: Supabase (PostgreSQL + Auth + Realtime + Storage)
+- Admin: Next.js + shadcn/ui
+- Language: TypeScript
+
+## Tasarim Kurallari (COK ONEMLI)
+
+- Her sey BASIT olmali. Teknik terim kullanma.
+- Minimum font size: 16px (body), 20px (basliklar)
+- Butonlar buyuk: minimum 48px yukseklik
+- Turkce UI: "Basla", "Yuk Paylas", "Teklif Ver"
+- Ana renk: #FF6B35 (turuncu)
+- Durum renkleri: Yesil=Aktif, Sari=Teklif Var, Kirmizi=Kapandi
+- Maksimum 3 dokunusta her islem tamamlanmali
+
+## Arac Turleri
+
+- Minivan/Panelvan (0-800 kg)
+- Kamyonet (0-3.500 kg)
+- Kamyon (0-12.000 kg)
+- Tir/Kirkayak (0-25.000 kg)
+- Damperli (25.000+ kg)
+
+## Yuk Durumlari
+
+active -> has_offers -> assigned -> in_transit -> delivered
+
+## Veritabani
+
+Supabase kullaniyoruz. Tablolar:
+profiles, loads, offers, messages, reviews, notifications
+Row Level Security (RLS) aktif.
+
+## Dosya Yapisi
+
+/app - Expo Router ekranlari
+/components - Tekrar kullanilabilir bilesenler
+/services - Supabase client ve API fonksiyonlari
+/hooks - Custom React hooks
+/utils - Yardimci fonksiyonlar
+/constants - Sabit degerler (sehirler, arac turleri)
+/types - TypeScript type tanimlari
+
+## Onemli Notlar
+
+- Yuk boyutu (en x boy x yukseklik) OPSIYONELDIR
+- Profil fotografi ve TC dogrulama YOKTUR
+- 81 Turkiye ili sabit dizi olarak tutulur
+- Fotografli ilanlar listede one cikar
+- Mesajlasma Supabase Realtime ile calisir
+- Push bildirimler expo-notifications ile
+- Tum UI Turkce olacak
