@@ -16,7 +16,8 @@ import { supabase } from '@/services/supabase';
 const CODE_LENGTH = 6;
 
 export default function VerifyScreen() {
-  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const { phone: rawPhone } = useLocalSearchParams<{ phone: string }>();
+  const fullPhone = `+90${rawPhone}`;
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
@@ -63,23 +64,28 @@ export default function VerifyScreen() {
 
   const verifyOtp = async (otp: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      phone: phone!,
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: fullPhone,
       token: otp,
       type: 'sms',
     });
     setLoading(false);
 
     if (error) {
-      Alert.alert('Hata', 'Kod hatalı. Lütfen tekrar deneyin.');
+      Alert.alert('Hata', error.message);
       setCode(Array(CODE_LENGTH).fill(''));
       inputs.current[0]?.focus();
+      return;
+    }
+
+    if (data.session) {
+      router.replace('/');
     }
   };
 
   const handleResend = async () => {
     setResendTimer(60);
-    const { error } = await supabase.auth.signInWithOtp({ phone: phone! });
+    const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
     if (error) {
       Alert.alert('Hata', error.message);
     }
@@ -99,7 +105,7 @@ export default function VerifyScreen() {
 
         <Text style={styles.title}>Doğrulama Kodu</Text>
         <Text style={styles.subtitle}>
-          <Text style={styles.phoneHighlight}>{phone}</Text> numarasına{'\n'}
+          <Text style={styles.phoneHighlight}>{fullPhone}</Text> numarasına{'\n'}
           gönderilen 6 haneli kodu girin
         </Text>
 

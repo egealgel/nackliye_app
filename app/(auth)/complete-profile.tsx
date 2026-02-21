@@ -12,6 +12,7 @@ import {
   FlatList,
   SafeAreaView,
 } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/lib/auth';
 import { TURKISH_CITIES } from '@/constants/turkishCities';
@@ -63,6 +64,7 @@ export default function CompleteProfileScreen() {
     }
 
     await refreshProfile();
+    router.replace('/(tabs)');
   };
 
   return (
@@ -100,6 +102,9 @@ export default function CompleteProfileScreen() {
 
         <Text style={styles.label}>
           Araç Tipi <Text style={styles.optional}>(isteğe bağlı)</Text>
+        </Text>
+        <Text style={styles.vehicleNote}>
+          Araç türü seçimi bildirim tercihleriniz içindir. Herkes hem yük paylaşabilir hem yük alabilir.
         </Text>
         <TouchableOpacity
           style={styles.pickerButton}
@@ -261,6 +266,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 18,
     color: '#1A1A1A',
+  },
+  vehicleNote: {
+    fontSize: 14,
+    color: '#888',
+    lineHeight: 20,
+    marginBottom: 12,
   },
   pickerButton: {
     height: 56,

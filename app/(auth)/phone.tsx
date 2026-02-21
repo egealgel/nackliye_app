@@ -49,7 +49,7 @@ export default function PhoneScreen() {
       return;
     }
 
-    router.push({ pathname: '/(auth)/verify', params: { phone: fullPhone } });
+    router.push({ pathname: '/(auth)/verify', params: { phone: rawPhone } });
   };
 
   return (
