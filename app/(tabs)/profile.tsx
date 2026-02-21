@@ -57,7 +57,16 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const phone = profile?.phone || session?.user?.phone || '-';
+  const rawPhone = profile?.phone || session?.user?.phone;
+  const formatPhone = (s: string | undefined): string => {
+    if (!s) return '-';
+    const digits = s.replace(/\D/g, '');
+    if (digits.length < 10) return s;
+    const d = digits.startsWith('90') ? digits.slice(2) : digits;
+    if (d.length === 10) return `+90 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`;
+    return `+${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+  };
+  const phone = formatPhone(rawPhone);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

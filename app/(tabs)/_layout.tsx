@@ -29,7 +29,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#FF6B35',
         tabBarInactiveTintColor: '#999',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarItemStyle: { paddingHorizontal: 0 },
+        tabBarItemStyle: { flex: 1 },
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#F0F0F0',
@@ -37,6 +37,7 @@ export default function TabLayout() {
           height: 64,
           paddingBottom: 8,
           paddingTop: 4,
+          paddingHorizontal: 8,
         },
         headerStyle: { backgroundColor: '#FFFFFF' },
         headerTitleStyle: {
@@ -51,7 +52,6 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Ana Sayfa',
-          tabBarItemStyle: { marginRight: -16 },
           tabBarIcon: ({ color }) => (
             <Ionicons name="home" size={26} color={color} />
           ),
@@ -62,7 +62,7 @@ export default function TabLayout() {
         name="rooms"
         options={{
           title: 'Odalar',
-          tabBarItemStyle: { marginRight: -16 },
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Ionicons name="grid" size={26} color={color} />
           ),
@@ -73,14 +73,9 @@ export default function TabLayout() {
         name="create"
         options={{
           title: '',
+          headerShown: false,
           tabBarIcon: () => <CreateTabIcon />,
           tabBarLabel: () => null,
-          tabBarItemStyle: { width: 64 },
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-          },
         }}
       />
 
@@ -88,7 +83,6 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: 'Mesajlar',
-          tabBarItemStyle: { marginLeft: -16 },
           tabBarIcon: ({ color }) => (
             <View>
               <Ionicons name="chatbubbles" size={26} color={color} />
@@ -102,7 +96,6 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profil',
-          tabBarItemStyle: { marginLeft: -16 },
           tabBarIcon: ({ color }) => (
             <Ionicons name="person" size={26} color={color} />
           ),

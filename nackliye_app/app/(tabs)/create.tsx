@@ -4,16 +4,15 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
-import { LoadFormData, PhotoItem, VehicleType, suggestVehicleType } from '@/types/load';
+import { LoadFormData, VehicleType, suggestVehicleType } from '@/types/load';
 import ProgressBar from '@/components/create-load/ProgressBar';
 import CityDistrictPicker from '@/components/create-load/CityDistrictPicker';
 import StepWeight from '@/components/create-load/StepWeight';
@@ -38,50 +37,17 @@ const INITIAL_FORM: LoadFormData = {
 };
 
 export default function CreateLoadScreen() {
-  const router = useRouter();
   const { session } = useAuth();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<LoadFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const goNext = useCallback(
-    () => setStep((s) => Math.min(s + 1, TOTAL_STEPS)),
-    [],
-  );
+  const goNext = useCallback(() => setStep((s) => Math.min(s + 1, TOTAL_STEPS)), []);
   const goBack = useCallback(() => setStep((s) => Math.max(s - 1, 1)), []);
-
-  const handleGeri = useCallback(() => {
-    if (step === 1) {
-      Alert.alert(
-        'İlanı iptal et',
-        'İlanı iptal etmek istediğinize emin misiniz?',
-        [
-          { text: 'Hayır', style: 'cancel' },
-          {
-            text: 'Evet, iptal et',
-            style: 'destructive',
-            onPress: () => router.back(),
-          },
-        ],
-      );
-    } else {
-      goBack();
-    }
-  }, [step, goBack, router]);
 
   const updateForm = useCallback((updates: Partial<LoadFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
   }, []);
-
-  const setPhotos = useCallback(
-    (update: PhotoItem[] | ((prev: PhotoItem[]) => PhotoItem[])) => {
-      setFormData((prev) => ({
-        ...prev,
-        photos: typeof update === 'function' ? update(prev.photos) : update,
-      }));
-    },
-    [],
-  );
 
   const handlePublish = async () => {
     if (!session?.user?.id) {
@@ -91,9 +57,31 @@ export default function CreateLoadScreen() {
 
     setIsSubmitting(true);
     try {
-      const photoUrls = formData.photos
-        .filter((p) => p.status === 'done' && p.url)
-        .map((p) => p.url!);
+      const photoUrls: string[] = [];
+
+      for (const photoUri of formData.photos) {
+        const ext = photoUri.split('.').pop() || 'jpg';
+        const fileName = `${session.user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+
+        const arrayBuffer = await new Response(blob).arrayBuffer();
+
+        const { data, error } = await supabase.storage
+          .from('load-photos')
+          .upload(fileName, arrayBuffer, {
+            contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
+          });
+
+        if (error) throw error;
+
+        const { data: urlData } = supabase.storage
+          .from('load-photos')
+          .getPublicUrl(data.path);
+
+        photoUrls.push(urlData.publicUrl);
+      }
 
       const { error } = await supabase.from('loads').insert({
         user_id: session.user.id,
@@ -101,10 +89,10 @@ export default function CreateLoadScreen() {
         from_district: formData.fromDistrict,
         to_city: formData.toCity,
         to_district: formData.toDistrict,
-        weight_kg: formData.weight,
-        width_cm: formData.width || null,
-        length_cm: formData.length || null,
-        height_cm: formData.height || null,
+        weight: formData.weight,
+        width: formData.width || null,
+        length: formData.length || null,
+        height: formData.height || null,
         vehicle_type: formData.vehicleType,
         photos: photoUrls,
         description: formData.description || null,
@@ -123,10 +111,7 @@ export default function CreateLoadScreen() {
         },
       ]);
     } catch (error: any) {
-      Alert.alert(
-        'Hata',
-        error.message || 'Bir hata oluştu. Lütfen tekrar deneyin.',
-      );
+      Alert.alert('Hata', error.message || 'Bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsSubmitting(false);
     }
@@ -137,7 +122,6 @@ export default function CreateLoadScreen() {
       case 1:
         return (
           <CityDistrictPicker
-            key="origin"
             title="Nereden?"
             selectedCity={formData.fromCity}
             selectedDistrict={formData.fromDistrict}
@@ -150,7 +134,6 @@ export default function CreateLoadScreen() {
       case 2:
         return (
           <CityDistrictPicker
-            key="destination"
             title="Nereye?"
             selectedCity={formData.toCity}
             selectedDistrict={formData.toDistrict}
@@ -166,9 +149,7 @@ export default function CreateLoadScreen() {
             weight={formData.weight}
             onWeightChange={(weight) => updateForm({ weight })}
             onNext={() => {
-              updateForm({
-                vehicleType: suggestVehicleType(formData.weight),
-              });
+              updateForm({ vehicleType: suggestVehicleType(formData.weight) });
               goNext();
             }}
           />
@@ -199,7 +180,7 @@ export default function CreateLoadScreen() {
         return (
           <StepPhotos
             photos={formData.photos}
-            onPhotosChange={setPhotos}
+            onPhotosChange={(photos) => updateForm({ photos })}
             onNext={goNext}
             onSkip={goNext}
           />
@@ -227,18 +208,21 @@ export default function CreateLoadScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={handleGeri}
-          style={styles.geriButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={22} color="#1F2937" />
-          <Text style={styles.geriText}>Geri</Text>
-        </TouchableOpacity>
+        {step > 1 ? (
+          <TouchableOpacity
+            onPress={goBack}
+            style={styles.backButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <FontAwesome name="arrow-left" size={20} color="#1F2937" />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.backPlaceholder} />
+        )}
         <Text style={styles.headerTitle}>Yük Oluştur</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.backPlaceholder} />
       </View>
 
       <ProgressBar currentStep={step} totalSteps={TOTAL_STEPS} />
@@ -266,23 +250,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  geriButton: {
-    flexDirection: 'row',
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 44,
-    minHeight: 44,
-    paddingHorizontal: 4,
-    marginLeft: -4,
-    gap: 4,
   },
-  geriText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  headerSpacer: {
-    minWidth: 60,
+  backPlaceholder: {
+    width: 40,
   },
   headerTitle: {
     fontSize: 17,

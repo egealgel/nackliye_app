@@ -1,90 +1,122 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { VEHICLE_TYPES } from '@/constants/vehicleTypes';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useAuth } from '@/lib/auth';
+import { VehicleType, LoadWithDetails } from '@/types/load';
+import { useRoomLoads, useRoomCounts } from '@/hooks/useRoomLoads';
+import RoomTabs from '@/components/rooms/RoomTabs';
+import RoomLoadCard from '@/components/rooms/RoomLoadCard';
 
-const ROOM_CONFIG: Record<string, { icon: keyof typeof MaterialCommunityIcons.glyphMap; color: string; bg: string }> = {
-  minivan: { icon: 'van-utility', color: '#4CAF50', bg: '#E8F5E9' },
-  kamyonet: { icon: 'truck-outline', color: '#2196F3', bg: '#E3F2FD' },
-  kamyon: { icon: 'truck', color: '#FF6B35', bg: '#FFF0E8' },
-  tir: { icon: 'truck-trailer', color: '#9C27B0', bg: '#F3E5F5' },
-  damperli: { icon: 'dump-truck', color: '#F44336', bg: '#FFEBEE' },
-  gondericiyim: { icon: 'package-variant', color: '#607D8B', bg: '#ECEFF1' },
-};
+const PRIMARY = '#FF6B35';
 
 export default function RoomsScreen() {
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.header}>Araç Tipi Odaları</Text>
-      <Text style={styles.subtitle}>
-        Araç tipine göre yükleri görüntüleyin
-      </Text>
+  const { session } = useAuth();
+  const [selectedRoom, setSelectedRoom] = useState<VehicleType>('kamyonet');
+  const { loads, isLoading, refresh } = useRoomLoads(selectedRoom);
+  const { counts, refresh: refreshCounts } = useRoomCounts();
 
-      <View style={styles.grid}>
-        {VEHICLE_TYPES.map((vt) => {
-          const cfg = ROOM_CONFIG[vt.value];
-          return (
-            <TouchableOpacity key={vt.value} style={styles.card} activeOpacity={0.7}>
-              <View style={[styles.iconCircle, { backgroundColor: cfg?.bg ?? '#F5F5F5' }]}>
-                <MaterialCommunityIcons
-                  name={cfg?.icon ?? 'truck'}
-                  size={32}
-                  color={cfg?.color ?? '#999'}
-                />
-              </View>
-              <Text style={styles.cardLabel}>{vt.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
+  useFocusEffect(
+    useCallback(() => {
+      refreshCounts();
+    }, [refreshCounts]),
+  );
+  const [refreshing, setRefreshing] = useState(false);
+
+  const currentUserId = session?.user?.id || '';
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  }, [refresh]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: LoadWithDetails }) => (
+      <RoomLoadCard load={item} currentUserId={currentUserId} />
+    ),
+    [currentUserId],
+  );
+
+  const keyExtractor = useCallback((item: LoadWithDetails) => item.id, []);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>Odalar</Text>
       </View>
-    </ScrollView>
+
+      <RoomTabs
+        selected={selectedRoom}
+        onSelect={setSelectedRoom}
+        counts={counts}
+      />
+
+      {isLoading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={PRIMARY} />
+        </View>
+      ) : loads.length === 0 ? (
+        <View style={styles.center}>
+          <Ionicons name="file-tray-outline" size={56} color="#D1D5DB" />
+          <Text style={styles.emptyText}>Bu odada henüz yük yok</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={loads}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={PRIMARY}
+            />
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
-  content: {
-    padding: 20,
+  titleRow: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  header: {
+  title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1A1A1A',
-    marginBottom: 4,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#888',
-    marginBottom: 24,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  card: {
-    width: '47%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
-  },
-  iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  center: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
   },
-  cardLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    textAlign: 'center',
+  emptyText: {
+    fontSize: 16,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  list: {
+    paddingTop: 4,
+    paddingBottom: 20,
   },
 });

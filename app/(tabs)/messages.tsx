@@ -7,7 +7,7 @@ export default function MessagesScreen() {
       <Text style={styles.title}>Mesajlar</Text>
       <Text style={styles.subtitle}>
         Henüz mesajınız yok.{'\n'}
-        Bir yüke teklif verdiğinizde mesajlaşma başlar.
+        Bir yüke "Mesaj Gönder" dediğinizde sohbet başlar.
       </Text>
     </View>
   );
