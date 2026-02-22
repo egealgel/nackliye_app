@@ -12,16 +12,26 @@ import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/lib/auth';
 import { VehicleType, LoadWithDetails } from '@/types/load';
-import { useRoomLoads, useRoomCounts } from '@/hooks/useRoomLoads';
+import { useRoomLoads, useRoomCounts, type RoomFilters } from '@/hooks/useRoomLoads';
 import RoomTabs from '@/components/rooms/RoomTabs';
+import RoomFilterBar from '@/components/rooms/RoomFilterBar';
 import RoomLoadCard from '@/components/rooms/RoomLoadCard';
 
 const PRIMARY = '#FF6B35';
 
+const DEFAULT_FILTERS: RoomFilters = {
+  fromCity: null,
+  fromDistrict: null,
+  toCity: null,
+  dateFilter: 'all',
+  statusFilter: 'active',
+};
+
 export default function RoomsScreen() {
   const { profile, session } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<VehicleType>('kamyonet');
-  const { loads, isLoading, refresh } = useRoomLoads(selectedRoom);
+  const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
+  const { loads, isLoading, refresh } = useRoomLoads(selectedRoom, filters);
   const { counts, refresh: refreshCounts } = useRoomCounts();
 
   useFocusEffect(
@@ -62,6 +72,8 @@ export default function RoomsScreen() {
         onSelect={setSelectedRoom}
         counts={counts}
       />
+
+      <RoomFilterBar filters={filters} onFiltersChange={setFilters} />
 
       {isLoading ? (
         <View style={styles.center}>

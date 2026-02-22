@@ -2,6 +2,17 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/services/supabase';
 import { VehicleType, LoadWithDetails, ProfileSnippet } from '@/types/load';
 
+export type DateFilter = 'today' | '3days' | 'week' | 'all';
+export type StatusFilter = 'active' | 'assigned' | 'all';
+
+export type RoomFilters = {
+  fromCity: string | null;
+  fromDistrict: string | null;
+  toCity: string | null;
+  dateFilter: DateFilter;
+  statusFilter: StatusFilter;
+};
+
 function statusPriority(status: string): number {
   if (status === 'active' || status === 'has_offers') return 1;
   if (status === 'assigned' || status === 'in_transit') return 2;
@@ -22,17 +33,94 @@ function sortLoadsByStatus<T extends { status: string; created_at: string }>(
   });
 }
 
-export function useRoomLoads(vehicleType: VehicleType) {
+function getDateFilterGte(filter: DateFilter): string | null {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (filter === 'today') return today.toISOString();
+  if (filter === '3days') {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 3);
+    return d.toISOString();
+  }
+  if (filter === 'week') {
+    const d = new Date(today);
+    const day = d.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + mondayOffset);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+  return null; // all
+}
+
+function getStatusList(filter: StatusFilter): string[] {
+  if (filter === 'active') return ['active', 'has_offers'];
+  if (filter === 'assigned') return ['assigned'];
+  return ['active', 'has_offers', 'assigned', 'in_transit', 'delivered'];
+}
+
+export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
   const [loads, setLoads] = useState<LoadWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const isMounted = useRef(true);
 
   const fetchLoads = useCallback(async () => {
-    const { data: loadsData, error: loadsErr } = await supabase
+    const statusList = getStatusList(filters.statusFilter);
+    const dateGte = getDateFilterGte(filters.dateFilter);
+
+    let query = supabase
       .from('loads')
       .select('*')
       .eq('vehicle_type', vehicleType)
-      .in('status', ['active', 'has_offers', 'assigned', 'in_transit', 'delivered']);
+      .in('status', statusList);
+
+    if (filters.fromCity) {
+      query = query.eq('from_city', filters.fromCity);
+      if (filters.fromDistrict) {
+        query = query.eq('from_district', filters.fromDistrict);
+      }
+    }
+    if (filters.toCity) {
+      query = query.eq('to_city', filters.toCity);
+    }
+
+    if (dateGte) {
+      // "İş Verildi": use updated_at only (load was created earlier, assigned recently)
+      // Other statuses: use created_at (when posted) or updated_at (covers both)
+      if (filters.statusFilter === 'assigned') {
+        query = query.gte('updated_at', dateGte);
+      } else {
+        query = query.or(`created_at.gte.${dateGte},updated_at.gte.${dateGte}`);
+      }
+    }
+
+    let result = await query;
+    let loadsData = result.data;
+    let loadsErr = result.error;
+
+    if (loadsErr) {
+      // If updated_at column doesn't exist (migration not run), retry with created_at for assigned
+      if (
+        filters.statusFilter === 'assigned' &&
+        dateGte &&
+        loadsErr.message?.toLowerCase().includes('updated_at')
+      ) {
+        let fallbackQuery = supabase
+          .from('loads')
+          .select('*')
+          .eq('vehicle_type', vehicleType)
+          .in('status', statusList)
+          .gte('created_at', dateGte);
+        if (filters.fromCity) {
+          fallbackQuery = fallbackQuery.eq('from_city', filters.fromCity);
+          if (filters.fromDistrict) fallbackQuery = fallbackQuery.eq('from_district', filters.fromDistrict);
+        }
+        if (filters.toCity) fallbackQuery = fallbackQuery.eq('to_city', filters.toCity);
+        const fb = await fallbackQuery;
+        loadsData = fb.data;
+        loadsErr = fb.error;
+      }
+    }
 
     if (loadsErr || !loadsData) {
       if (isMounted.current) {
@@ -80,13 +168,13 @@ export function useRoomLoads(vehicleType: VehicleType) {
         : undefined,
     }));
 
-    const result = sortLoadsByStatus(mapped);
+    const sortedResult = sortLoadsByStatus(mapped);
 
     if (isMounted.current) {
-      setLoads(result);
+      setLoads(sortedResult);
       setIsLoading(false);
     }
-  }, [vehicleType]);
+  }, [vehicleType, filters.fromCity, filters.fromDistrict, filters.toCity, filters.dateFilter, filters.statusFilter]);
 
   useEffect(() => {
     isMounted.current = true;
