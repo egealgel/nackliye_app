@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
@@ -61,6 +62,7 @@ export default function StepPhotos({
   onSkip,
 }: Props) {
   const { session } = useAuth();
+  const [cameraPreviewUri, setCameraPreviewUri] = useState<string | null>(null);
 
   const addAndUpload = async (uris: string[]) => {
     const userId = session?.user?.id;
@@ -107,11 +109,23 @@ export default function StepPhotos({
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
       quality: 0.8,
-      allowsEditing: true,
+      allowsEditing: false,
     });
     if (!result.canceled && result.assets[0]) {
-      await addAndUpload([result.assets[0].uri]);
+      setCameraPreviewUri(result.assets[0].uri);
     }
+  };
+
+  const handleUsePhoto = async () => {
+    if (cameraPreviewUri) {
+      setCameraPreviewUri(null);
+      await addAndUpload([cameraPreviewUri]);
+    }
+  };
+
+  const handleRetake = () => {
+    setCameraPreviewUri(null);
+    pickFromCamera();
   };
 
   const pickFromGallery = async () => {
@@ -141,6 +155,7 @@ export default function StepPhotos({
   const canProceed = photos.length > 0 && !hasUploading;
 
   return (
+    <>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>Fotoğraf ekle</Text>
       <Text style={styles.subtitle}>Yükünüzün fotoğraflarını ekleyin</Text>
@@ -229,6 +244,30 @@ export default function StepPhotos({
         </TouchableOpacity>
       )}
     </ScrollView>
+
+    <Modal
+      visible={!!cameraPreviewUri}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setCameraPreviewUri(null)}
+    >
+      <View style={styles.previewOverlay}>
+        <View style={styles.previewContent}>
+          {cameraPreviewUri && (
+            <Image source={{ uri: cameraPreviewUri }} style={styles.previewImage} resizeMode="contain" />
+          )}
+          <View style={styles.previewButtons}>
+            <TouchableOpacity style={styles.retakeButton} onPress={handleRetake}>
+              <Text style={styles.retakeButtonText}>Tekrar Çek</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.usePhotoButton} onPress={handleUsePhoto}>
+              <Text style={styles.usePhotoButtonText}>Fotoğrafı Kullan</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -359,5 +398,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#868e96',
+  },
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  previewContent: {
+    width: '100%',
+    maxHeight: '80%',
+  },
+  previewImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  previewButtons: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  retakeButton: {
+    flex: 1,
+    backgroundColor: '#374151',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  retakeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  usePhotoButton: {
+    flex: 1,
+    backgroundColor: PRIMARY,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  usePhotoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

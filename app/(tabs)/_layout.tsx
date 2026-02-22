@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useUnreadCount } from '@/hooks/useUnreadCount';
+import { useUnreadCount } from '@/lib/UnreadCountContext';
 
 function CreateTabIcon() {
   return (
@@ -11,17 +11,32 @@ function CreateTabIcon() {
   );
 }
 
-function MessageBadge({ count }: { count: number }) {
+const MessageBadge = ({ count }: { count: number }) => {
   if (count <= 0) return null;
   return (
-    <View style={styles.badge}>
-      <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+    <View
+      style={{
+        position: 'absolute',
+        top: -4,
+        right: -10,
+        backgroundColor: '#FF3B30',
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+      }}
+    >
+      <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>
+        {count > 99 ? '99+' : count}
+      </Text>
     </View>
   );
-}
+};
 
 export default function TabLayout() {
-  const unreadCount = useUnreadCount();
+  const { count: unreadCount } = useUnreadCount();
 
   return (
     <Tabs
@@ -83,6 +98,8 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: 'Mesajlar',
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: '#FFFFFF' },
           tabBarIcon: ({ color }) => (
             <View>
               <Ionicons name="chatbubbles" size={26} color={color} />
@@ -119,22 +136,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 8,
-  },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -10,
-    backgroundColor: '#FF3B30',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 5,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
 });

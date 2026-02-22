@@ -9,11 +9,6 @@ const VALID_TRANSITIONS: Record<string, string> = {
   in_transit: "delivered",
 };
 
-const STATUS_NOTIFICATIONS: Record<string, { title: string; body: string }> = {
-  in_transit: { title: "Yük Yüklendi", body: "Yükünüz yüklendi" },
-  delivered: { title: "Yük Teslim Edildi", body: "Yükünüz teslim edildi" },
-};
-
 type UpdateStatusInput = {
   load_id: string;
   new_status: "in_transit" | "delivered";
@@ -187,33 +182,6 @@ Deno.serve(async (req) => {
         { error: updateError.message ?? "Failed to update load status" },
         500
       );
-    }
-
-    // Notify the other party (load owner when driver updates; driver when owner updates)
-    const otherPartyId = user.id === load.user_id ? load.assigned_to : load.user_id;
-
-    if (otherPartyId) {
-      const notif = STATUS_NOTIFICATIONS[input.new_status];
-      const { error: notifError } = await supabaseAdmin
-        .from("notifications")
-        .insert({
-          user_id: otherPartyId,
-          type: `load_${input.new_status}`,
-          title: notif.title,
-          body: notif.body,
-          data: {
-            load_id: load.id,
-            new_status: input.new_status,
-            ...(input.delivery_photo_url && {
-              delivery_photo_url: input.delivery_photo_url,
-            }),
-          },
-          read: false,
-        });
-
-      if (notifError) {
-        console.error("Notification insert error:", notifError);
-      }
     }
 
     return jsonResponse({

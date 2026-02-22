@@ -47,12 +47,14 @@ export default function CompleteProfileScreen() {
 
     setLoading(true);
 
+    const authPhone = session!.user.phone;
     const { error } = await supabase
       .from('profiles')
       .update({
         name: name.trim(),
         city,
         vehicle_type: vehicleType || null,
+        ...(authPhone ? { phone: authPhone } : {}),
       })
       .eq('id', session!.user.id);
 

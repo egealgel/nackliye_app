@@ -220,29 +220,26 @@ Deno.serve(async (req) => {
 
     const matchingDrivers = drivers ?? [];
 
-    // Insert notifications for matching drivers (in-app; for push, add DB webhook or Expo/FCM integration)
-    if (matchingDrivers.length > 0) {
-      const notifications = matchingDrivers.map((d: { id: string; name: string }) => ({
-        user_id: d.id,
-        type: "new_load",
-        title: "Yeni Yük İlanı",
-        body: `${input.from_city} → ${input.to_city}, ${input.weight_kg} kg`,
-        data: {
-          load_id: load.id,
-          from_city: input.from_city,
-          to_city: input.to_city,
-          vehicle_type: input.vehicle_type,
-          weight_kg: input.weight_kg,
-        },
-        read: false,
-      }));
-
-      const { error: notifError } = await supabaseAdmin
-        .from("notifications")
-        .insert(notifications);
-
-      if (notifError) {
-        console.error("Notifications insert error:", notifError);
+    // Push notifications via send-notification (DB webhook on-new-load handles direct inserts)
+    const bodyText = `${input.from_city} → ${input.to_city} | ${input.weight_kg} kg`;
+    const fnUrl = `${supabaseUrl}/functions/v1/send-notification`;
+    for (const d of matchingDrivers) {
+      try {
+        await fetch(fnUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            user_id: d.id,
+            title: "Yeni Yük",
+            body: bodyText,
+            data: { type: "load", loadId: load.id },
+          }),
+        });
+      } catch (e) {
+        console.error("Push to", d.id, e);
       }
     }
 

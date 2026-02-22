@@ -191,40 +191,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get driver name for notification
-    const { data: driverProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("name")
-      .eq("id", user.id)
-      .single();
-
-    const driverName = driverProfile?.name ?? "Sürücü";
-    const formattedPrice = new Intl.NumberFormat("tr-TR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(input.price);
-
-    // Send notification to load owner
-    const { error: notifError } = await supabaseAdmin
-      .from("notifications")
-      .insert({
-        user_id: load.user_id,
-        type: "new_offer",
-        title: "Yeni Teklif",
-        body: `Yükünüze yeni teklif: ₺${formattedPrice} - ${driverName}`,
-        data: {
-          load_id: input.load_id,
-          offer_id: offer.id,
-          driver_id: user.id,
-          price: input.price,
-        },
-        read: false,
-      });
-
-    if (notifError) {
-      console.error("Notification insert error:", notifError);
-    }
-
     return jsonResponse({
       offer: {
         id: offer.id,

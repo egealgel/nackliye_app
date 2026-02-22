@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase';
+import { clearPushToken } from '@/services/notifications';
 
 type Profile = {
   id: string;
@@ -57,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (session?.user?.id) {
+      await clearPushToken(session.user.id);
+    }
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);

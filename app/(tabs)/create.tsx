@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -13,6 +14,7 @@ import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
+import { requestNotificationsAfterFirstAction } from '@/services/notifications';
 import { LoadFormData, PhotoItem, VehicleType, suggestVehicleType } from '@/types/load';
 import ProgressBar from '@/components/create-load/ProgressBar';
 import CityDistrictPicker from '@/components/create-load/CityDistrictPicker';
@@ -43,6 +45,7 @@ export default function CreateLoadScreen() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<LoadFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const goNext = useCallback(
     () => setStep((s) => Math.min(s + 1, TOTAL_STEPS)),
@@ -95,23 +98,54 @@ export default function CreateLoadScreen() {
         .filter((p) => p.status === 'done' && p.url)
         .map((p) => p.url!);
 
-      const { error } = await supabase.from('loads').insert({
-        user_id: session.user.id,
-        from_city: formData.fromCity,
-        from_district: formData.fromDistrict,
-        to_city: formData.toCity,
-        to_district: formData.toDistrict,
-        weight_kg: formData.weight,
-        width_cm: formData.width || null,
-        length_cm: formData.length || null,
-        height_cm: formData.height || null,
-        vehicle_type: formData.vehicleType,
-        photos: photoUrls,
-        description: formData.description || null,
-        status: 'active',
-      });
+      const { data: newLoad, error } = await supabase
+        .from('loads')
+        .insert({
+          user_id: session.user.id,
+          from_city: formData.fromCity,
+          from_district: formData.fromDistrict,
+          to_city: formData.toCity,
+          to_district: formData.toDistrict,
+          weight_kg: formData.weight,
+          width_cm: formData.width || null,
+          length_cm: formData.length || null,
+          height_cm: formData.height || null,
+          vehicle_type: formData.vehicleType,
+          photos: photoUrls,
+          description: formData.description || null,
+          status: 'active',
+        })
+        .select('id, from_city, from_district, to_city, to_district, weight_kg')
+        .single();
 
       if (error) throw error;
+
+      const bodyText = `${formData.fromCity}${formData.fromDistrict ? '/' + formData.fromDistrict : ''} → ${formData.toCity}${formData.toDistrict ? '/' + formData.toDistrict : ''} | ${formData.weight} kg`;
+      const { data: matchingProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('city', formData.fromCity)
+        .eq('vehicle_type', formData.vehicleType)
+        .neq('id', session.user.id);
+
+      if (matchingProfiles?.length) {
+        for (const p of matchingProfiles) {
+          try {
+            await supabase.functions.invoke('send-notification', {
+              body: {
+                user_id: p.id,
+                title: 'Yeni Yük',
+                body: bodyText,
+                data: { type: 'load', loadId: newLoad.id },
+              },
+            });
+          } catch {
+            // Silent fail for push
+          }
+        }
+      }
+
+      requestNotificationsAfterFirstAction(session.user.id);
 
       Alert.alert('Başarılı!', 'Yük ilanınız yayınlandı.', [
         {
@@ -119,6 +153,10 @@ export default function CreateLoadScreen() {
           onPress: () => {
             setStep(1);
             setFormData(INITIAL_FORM);
+            setIsRedirecting(true);
+            setTimeout(() => {
+              router.replace('/(tabs)');
+            }, 500);
           },
         },
       ]);
@@ -228,6 +266,11 @@ export default function CreateLoadScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      {isRedirecting && (
+        <View style={styles.redirectOverlay}>
+          <ActivityIndicator size="large" color={PRIMARY} />
+        </View>
+      )}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={handleGeri}
@@ -293,5 +336,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 8,
+  },
+  redirectOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
 });

@@ -14,7 +14,6 @@ import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
-import RouteDisplay from '@/components/RouteDisplay';
 import { useLoadMessageSenders } from '@/hooks/useLoadMessageSenders';
 import {
   LoadWithDetails,
@@ -32,7 +31,10 @@ type Props = {
 };
 
 function formatPhoneForDial(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('0') && digits.length === 11) {
+    digits = digits.slice(1);
+  }
   if (digits.startsWith('90') && digits.length >= 12) return `+${digits}`;
   if (digits.length === 10) return `+90${digits}`;
   return digits ? `+${digits}` : '';
@@ -75,12 +77,18 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
     }
   };
 
-  const openChat = (otherUserId: string) => {
+  const openChat = (
+    otherUserId: string,
+    otherName?: string,
+    otherPhone?: string
+  ) => {
     router.push({
       pathname: '/chat',
       params: {
         loadId: load.id,
         otherUserId,
+        otherUserName: otherName || '',
+        otherUserPhone: otherPhone || '',
         fromCity: load.from_city,
         fromDistrict: load.from_district,
         toCity: load.to_city,
@@ -95,10 +103,39 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
     else Alert.alert('Hata', 'Telefon numarası bulunamadı.');
   };
 
+  const handleAraPress = async () => {
+    const targetUserId = isOwner && load.assigned_to ? load.assigned_to : load.user_id;
+    let phone = isOwner && load.assigned_to ? load.assignedDriverPhone : load.ownerPhone;
+
+    if (!phone && targetUserId) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', targetUserId)
+        .single();
+      phone = data?.phone || '';
+    }
+
+    const tel = formatPhoneForDial(phone);
+    if (tel) Linking.openURL(`tel:${tel}`);
+    else Alert.alert('Hata', 'Telefon numarası bulunamadı.');
+  };
+
   const hasDimensions = load.width_cm || load.length_cm || load.height_cm;
 
   const otherPartyId = isOwner ? null : load.user_id;
-  const otherPartyPhone = isOwner ? '' : load.ownerPhone;
+
+  const statusLabel =
+    load.status === 'assigned'
+      ? 'İŞ VERİLDİ'
+      : load.status === 'in_transit'
+        ? 'Yolda'
+        : load.status === 'delivered'
+          ? 'Teslim Edildi'
+          : load.status === 'has_offers'
+            ? 'Teklif Var'
+            : 'Aktif';
+  const isAssignedStatus = load.status === 'assigned';
 
   return (
     <TouchableOpacity
@@ -106,39 +143,57 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.8}
     >
-      <View style={styles.topRow}>
-        <View style={styles.routeWrap}>
-          <RouteDisplay
-            fromCity={load.from_city}
-            fromDistrict={load.from_district}
-            toCity={load.to_city}
-            toDistrict={load.to_district}
-          />
-        </View>
-        {isAssigned && (
-          <View style={styles.assignedBadge}>
-            <Text style={styles.assignedBadgeText}>
-              İŞ VERİLDİ{load.assignedDriverName ? ` – ${load.assignedDriverName}` : ''}
+      {/* Row 1: Origin */}
+      <View style={styles.routeRow}>
+        <View style={[styles.dot, styles.dotOrigin]} />
+        <Text style={styles.routeText}>
+          {load.from_city} / {load.from_district || load.from_city}
+        </Text>
+      </View>
+
+      {/* Row 2: Destination */}
+      <View style={styles.routeRow}>
+        <View style={[styles.dot, styles.dotDest]} />
+        <Text style={styles.routeText}>
+          {load.to_city} / {load.to_district || load.to_city}
+        </Text>
+      </View>
+
+      {/* Row 3: Status badge (left), weight + time (right) */}
+      <View style={styles.bottomRow}>
+        <View style={styles.badgeTimeRow}>
+          <View
+            style={[
+              styles.statusBadge,
+              isAssignedStatus ? styles.statusBadgeAssigned : styles.statusBadgeDefault,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusBadgeText,
+                isAssignedStatus && styles.statusBadgeTextAssigned,
+              ]}
+            >
+              {statusLabel}
             </Text>
           </View>
-        )}
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons name="package-variant" size={16} color="#6B7280" />
+              <Text style={styles.metaText}>{formatWeight(load.weight_kg)}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={14} color="#6B7280" />
+              <Text style={styles.metaText}>{timeAgo(load.created_at)}</Text>
+            </View>
+          </View>
+        </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={20}
           color="#9CA3AF"
           style={styles.chevron}
         />
-      </View>
-
-      <View style={styles.metaRow}>
-        <View style={styles.metaItem}>
-          <MaterialCommunityIcons name="package-variant" size={16} color="#6B7280" />
-          <Text style={styles.metaText}>{formatWeight(load.weight_kg)}</Text>
-        </View>
-        <View style={styles.metaItem}>
-          <Ionicons name="time-outline" size={14} color="#6B7280" />
-          <Text style={styles.metaText}>{timeAgo(load.created_at)}</Text>
-        </View>
       </View>
 
       {expanded && (
@@ -205,7 +260,7 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
                   <View style={styles.senderActions}>
                     <TouchableOpacity
                       style={styles.msgBtn}
-                      onPress={() => openChat(s.userId)}
+                      onPress={() => openChat(s.userId, s.name, s.phone)}
                     >
                       <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
                       <Text style={styles.msgBtnText}>Mesaj</Text>
@@ -238,7 +293,10 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={styles.mesajButton}
-                onPress={() => otherPartyId && openChat(otherPartyId)}
+                onPress={() =>
+                  otherPartyId &&
+                  openChat(otherPartyId, load.ownerName, load.ownerPhone)
+                }
                 activeOpacity={0.8}
               >
                 <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
@@ -246,7 +304,7 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.araButton}
-                onPress={() => openCall(otherPartyPhone)}
+                onPress={handleAraPress}
                 activeOpacity={0.8}
               >
                 <Ionicons name="call" size={22} color="#FFFFFF" />
@@ -268,7 +326,11 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
               <TouchableOpacity
                 style={styles.mesajButton}
                 onPress={() =>
-                  openChat(isOwner && load.assigned_to ? load.assigned_to : load.user_id)
+                  openChat(
+                    isOwner && load.assigned_to ? load.assigned_to : load.user_id,
+                    isOwner ? load.assignedDriverName : load.ownerName,
+                    isOwner ? load.assignedDriverPhone : load.ownerPhone
+                  )
                 }
                 activeOpacity={0.8}
               >
@@ -277,11 +339,7 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.araButton}
-                onPress={() => {
-                  const phone = isOwner ? load.assignedDriverPhone : load.ownerPhone;
-                  if (phone) openCall(phone);
-                  else Alert.alert('Bilgi', 'Telefon numarası bulunamadı.');
-                }}
+                onPress={handleAraPress}
                 activeOpacity={0.8}
               >
                 <Ionicons name="call" size={22} color="#FFFFFF" />
@@ -308,36 +366,69 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  topRow: {
+  routeRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-    gap: 8,
+    alignItems: 'center',
+    marginBottom: 4,
   },
-  routeWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  assignedBadge: {
-    backgroundColor: '#DC2626',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
     flexShrink: 0,
   },
-  assignedBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
+  dotOrigin: {
+    backgroundColor: '#16A34A',
+  },
+  dotDest: {
+    backgroundColor: '#DC2626',
+  },
+  routeText: {
+    flex: 1,
+    fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    color: '#1F2937',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  badgeTimeRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minWidth: 0,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusBadgeDefault: {
+    backgroundColor: '#E5E7EB',
+  },
+  statusBadgeAssigned: {
+    backgroundColor: '#DC2626',
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  statusBadgeTextAssigned: {
+    color: '#FFFFFF',
   },
   chevron: {
-    marginTop: 2,
     flexShrink: 0,
   },
   metaRow: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
+    flexShrink: 0,
   },
   metaItem: {
     flexDirection: 'row',

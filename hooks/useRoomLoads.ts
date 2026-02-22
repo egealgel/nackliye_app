@@ -2,6 +2,26 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/services/supabase';
 import { VehicleType, LoadWithDetails, ProfileSnippet } from '@/types/load';
 
+function statusPriority(status: string): number {
+  if (status === 'active' || status === 'has_offers') return 1;
+  if (status === 'assigned' || status === 'in_transit') return 2;
+  if (status === 'delivered') return 3;
+  return 4;
+}
+
+function sortLoadsByStatus<T extends { status: string; created_at: string }>(
+  items: T[]
+): T[] {
+  return [...items].sort((a, b) => {
+    const pa = statusPriority(a.status);
+    const pb = statusPriority(b.status);
+    if (pa !== pb) return pa - pb;
+    return (
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+}
+
 export function useRoomLoads(vehicleType: VehicleType) {
   const [loads, setLoads] = useState<LoadWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -12,10 +32,17 @@ export function useRoomLoads(vehicleType: VehicleType) {
       .from('loads')
       .select('*')
       .eq('vehicle_type', vehicleType)
-      .in('status', ['active', 'assigned'])
-      .order('created_at', { ascending: false });
+      .in('status', ['active', 'has_offers', 'assigned', 'in_transit', 'delivered']);
 
-    if (loadsErr || !loadsData || loadsData.length === 0) {
+    if (loadsErr || !loadsData) {
+      if (isMounted.current) {
+        setLoads([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (loadsData.length === 0) {
       if (isMounted.current) {
         setLoads([]);
         setIsLoading(false);
@@ -37,7 +64,7 @@ export function useRoomLoads(vehicleType: VehicleType) {
     const profileMap = new Map<string, ProfileSnippet>();
     (profiles || []).forEach((p) => profileMap.set(p.id, p));
 
-    const result: LoadWithDetails[] = loadsData.map((l) => ({
+    const mapped: LoadWithDetails[] = loadsData.map((l) => ({
       ...l,
       ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
       ownerPhone: profileMap.get(l.user_id)?.phone || '',
@@ -48,6 +75,8 @@ export function useRoomLoads(vehicleType: VehicleType) {
         ? profileMap.get(l.assigned_to)?.phone
         : undefined,
     }));
+
+    const result = sortLoadsByStatus(mapped);
 
     if (isMounted.current) {
       setLoads(result);
@@ -119,4 +148,88 @@ export function useRoomCounts() {
   }, [fetchCounts]);
 
   return { counts, refresh: fetchCounts };
+}
+
+export function useAllLoads() {
+  const [loads, setLoads] = useState<LoadWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const isMounted = useRef(true);
+
+  const fetchLoads = useCallback(async () => {
+    const { data: loadsData, error: loadsErr } = await supabase
+      .from('loads')
+      .select('*')
+      .in('status', ['active', 'has_offers', 'assigned', 'in_transit', 'delivered']);
+
+    if (loadsErr || !loadsData) {
+      if (isMounted.current) {
+        setLoads([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (loadsData.length === 0) {
+      if (isMounted.current) {
+        setLoads([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const allUserIds = new Set<string>();
+    loadsData.forEach((l) => {
+      allUserIds.add(l.user_id);
+      if (l.assigned_to) allUserIds.add(l.assigned_to);
+    });
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, phone')
+      .in('id', [...allUserIds]);
+
+    const profileMap = new Map<string, ProfileSnippet>();
+    (profiles || []).forEach((p) => profileMap.set(p.id, p));
+
+    const mapped: LoadWithDetails[] = loadsData.map((l) => ({
+      ...l,
+      ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
+      ownerPhone: profileMap.get(l.user_id)?.phone || '',
+      assignedDriverName: l.assigned_to
+        ? profileMap.get(l.assigned_to)?.name
+        : undefined,
+      assignedDriverPhone: l.assigned_to
+        ? profileMap.get(l.assigned_to)?.phone
+        : undefined,
+    }));
+
+    const result = sortLoadsByStatus(mapped);
+
+    if (isMounted.current) {
+      setLoads(result);
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    isMounted.current = true;
+    setIsLoading(true);
+    fetchLoads();
+
+    const channel = supabase
+      .channel('all-loads')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'loads' },
+        () => fetchLoads()
+      )
+      .subscribe();
+
+    return () => {
+      isMounted.current = false;
+      supabase.removeChannel(channel);
+    };
+  }, [fetchLoads]);
+
+  return { loads, isLoading, refresh: fetchLoads };
 }

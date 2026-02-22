@@ -181,49 +181,6 @@ Deno.serve(async (req) => {
       console.error("Reject offers error:", rejectError);
     }
 
-    const rejectedDriverIds = (rejectedOffers ?? []).map((o) => o.driver_id);
-
-    // Notification to accepted driver
-    const { error: acceptedNotifError } = await supabaseAdmin
-      .from("notifications")
-      .insert({
-        user_id: offer.driver_id,
-        type: "offer_accepted",
-        title: "Teklif Kabul Edildi",
-        body: "Teklifiniz kabul edildi!",
-        data: {
-          offer_id: offer.id,
-          load_id: offer.load_id,
-        },
-        read: false,
-      });
-
-    if (acceptedNotifError) {
-      console.error("Accepted driver notification error:", acceptedNotifError);
-    }
-
-    // Notifications to rejected drivers
-    if (rejectedDriverIds.length > 0) {
-      const rejectedNotifications = rejectedDriverIds.map(
-        (driver_id: string) => ({
-          user_id: driver_id,
-          type: "offer_rejected",
-          title: "Teklif Reddedildi",
-          body: "Teklifiniz reddedildi.",
-          data: { load_id: offer.load_id },
-          read: false,
-        })
-      );
-
-      const { error: rejectedNotifError } = await supabaseAdmin
-        .from("notifications")
-        .insert(rejectedNotifications);
-
-      if (rejectedNotifError) {
-        console.error("Rejected drivers notification error:", rejectedNotifError);
-      }
-    }
-
     return jsonResponse({
       offer: {
         id: offer.id,

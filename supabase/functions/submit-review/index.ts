@@ -199,27 +199,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Notification to reviewed user
-    const { error: notifError } = await supabaseAdmin
-      .from("notifications")
-      .insert({
-        user_id: input.reviewed_id,
-        type: "new_review",
-        title: "Yeni Değerlendirme",
-        body: `Yeni bir değerlendirme aldınız: ⭐${input.rating}`,
-        data: {
-          review_id: review.id,
-          load_id: input.load_id,
-          rating: input.rating,
-          reviewer_id: user.id,
-        },
-        read: false,
-      });
-
-    if (notifError) {
-      console.error("Notification insert error:", notifError);
-    }
-
     return jsonResponse({
       review: {
         id: review.id,
