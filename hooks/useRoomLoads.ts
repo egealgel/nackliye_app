@@ -58,7 +58,7 @@ export function useRoomLoads(vehicleType: VehicleType) {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, phone')
+      .select('id, name, phone, rating_avg')
       .in('id', [...allUserIds]);
 
     const profileMap = new Map<string, ProfileSnippet>();
@@ -68,11 +68,15 @@ export function useRoomLoads(vehicleType: VehicleType) {
       ...l,
       ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
       ownerPhone: profileMap.get(l.user_id)?.phone || '',
+      ownerRatingAvg: profileMap.get(l.user_id)?.rating_avg ?? null,
       assignedDriverName: l.assigned_to
         ? profileMap.get(l.assigned_to)?.name
         : undefined,
       assignedDriverPhone: l.assigned_to
         ? profileMap.get(l.assigned_to)?.phone
+        : undefined,
+      assignedDriverRatingAvg: l.assigned_to
+        ? (profileMap.get(l.assigned_to)?.rating_avg ?? null)
         : undefined,
     }));
 
@@ -185,7 +189,7 @@ export function useAllLoads() {
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, phone')
+      .select('id, name, phone, rating_avg')
       .in('id', [...allUserIds]);
 
     const profileMap = new Map<string, ProfileSnippet>();
@@ -195,11 +199,15 @@ export function useAllLoads() {
       ...l,
       ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
       ownerPhone: profileMap.get(l.user_id)?.phone || '',
+      ownerRatingAvg: profileMap.get(l.user_id)?.rating_avg ?? null,
       assignedDriverName: l.assigned_to
         ? profileMap.get(l.assigned_to)?.name
         : undefined,
       assignedDriverPhone: l.assigned_to
         ? profileMap.get(l.assigned_to)?.phone
+        : undefined,
+      assignedDriverRatingAvg: l.assigned_to
+        ? (profileMap.get(l.assigned_to)?.rating_avg ?? null)
         : undefined,
     }));
 

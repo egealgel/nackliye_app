@@ -347,11 +347,24 @@ export default function ChatScreen() {
     }
   };
 
-  const openCall = () => {
+  const openCall = async () => {
     const phone = otherUserPhone || '';
     const tel = formatPhoneForDial(phone);
-    if (tel) Linking.openURL(`tel:${tel}`);
-    else Alert.alert('Bilgi', 'Telefon numarası bulunamadı.');
+    if (!tel) {
+      Alert.alert('Bilgi', 'Telefon numarası bulunamadı.');
+      return;
+    }
+    const url = `tel:${tel}`;
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        Alert.alert('Bilgi', 'Bu cihazda arama yapılamıyor');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Bilgi', 'Bu cihazda arama yapılamıyor');
+    }
   };
 
   const listItems = buildListItems(messages);

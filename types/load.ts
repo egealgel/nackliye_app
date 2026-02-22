@@ -98,13 +98,16 @@ export type ProfileSnippet = {
   id: string;
   name: string;
   phone: string;
+  rating_avg?: number | null;
 };
 
 export type LoadWithDetails = LoadRow & {
   ownerName: string;
   ownerPhone: string;
+  ownerRatingAvg?: number | null;
   assignedDriverName?: string;
   assignedDriverPhone?: string;
+  assignedDriverRatingAvg?: number | null;
 };
 
 export type MessageSender = {

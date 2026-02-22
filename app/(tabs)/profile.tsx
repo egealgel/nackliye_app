@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -17,12 +18,63 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
 import { VEHICLE_TYPES } from '@/constants/vehicleTypes';
 import { TURKISH_CITIES } from '@/constants/turkishCities';
+import { timeAgo } from '@/types/load';
+
+type ReceivedReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  reviewer_name: string;
+};
 
 export default function ProfileScreen() {
   const { profile, signOut, refreshProfile, session } = useAuth();
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [citySearch, setCitySearch] = useState('');
+  const [reviews, setReviews] = useState<ReceivedReview[]>([]);
+
+  const fetchReviews = useCallback(async () => {
+    if (!session?.user?.id) return;
+    const { data } = await supabase
+      .from('reviews')
+      .select('id, rating, comment, created_at, reviewer_id')
+      .eq('reviewed_id', session.user.id)
+      .order('created_at', { ascending: false });
+    if (!data?.length) {
+      setReviews([]);
+      return;
+    }
+    const ids = [...new Set(data.map((r) => r.reviewer_id))];
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('id', ids);
+    const nameMap = new Map(
+      (profilesData || []).map((p) => [p.id, p.name || 'Anonim'])
+    );
+    setReviews(
+      data.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at,
+        reviewer_name: nameMap.get(r.reviewer_id) || 'Anonim',
+      }))
+    );
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+      fetchReviews();
+    }, [refreshProfile, fetchReviews])
+  );
 
   const vehicleLabel =
     VEHICLE_TYPES.find((v) => v.value === profile?.vehicle_type)?.profileLabel;
@@ -78,6 +130,22 @@ export default function ProfileScreen() {
 
       <Text style={styles.name}>{profile?.name ?? 'Kullanıcı'}</Text>
 
+      <View style={styles.statsCard}>
+        <View style={styles.statsLeft}>
+          <Text style={styles.statsLabel}>Ortalama Puan</Text>
+          <Text style={styles.statsValue}>
+            {(profile?.rating_avg ?? 0) > 0
+              ? `⭐ ${Number(profile?.rating_avg ?? 0).toFixed(1)}`
+              : '-'}
+          </Text>
+        </View>
+        <View style={styles.statsDivider} />
+        <View style={styles.statsRight}>
+          <Text style={styles.statsLabel}>Tamamlanan İşler</Text>
+          <Text style={styles.statsValue}>{profile?.total_jobs ?? 0}</Text>
+        </View>
+      </View>
+
       {/* Info Card */}
       <View style={styles.card}>
         <View style={styles.row}>
@@ -132,6 +200,34 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.signOutText}>Çıkış Yap</Text>
       </TouchableOpacity>
+
+      {/* Received Reviews */}
+      {reviews.length > 0 && (
+        <View style={styles.reviewsSection}>
+          <Text style={styles.reviewsSectionTitle}>Aldığım Puanlar</Text>
+          {reviews.map((r) => (
+            <View key={r.id} style={styles.reviewCard}>
+              <View style={styles.reviewHeader}>
+                <Text style={styles.reviewerName}>{r.reviewer_name}</Text>
+                <Text style={styles.reviewDate}>{timeAgo(r.created_at)}</Text>
+              </View>
+              <View style={styles.reviewStars}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Ionicons
+                    key={s}
+                    name={r.rating >= s ? 'star' : 'star-outline'}
+                    size={16}
+                    color="#F59E0B"
+                  />
+                ))}
+              </View>
+              {r.comment && (
+                <Text style={styles.reviewComment}>{r.comment}</Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* City Picker */}
       <Modal visible={showCityPicker} animationType="slide">
@@ -243,7 +339,43 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#1A1A1A',
-    marginBottom: 28,
+    marginBottom: 20,
+  },
+  statsCard: {
+    width: '100%',
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+    paddingVertical: 20,
+    marginBottom: 24,
+  },
+  statsLeft: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsRight: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statsLabel: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 6,
+  },
+  statsValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  statsDivider: {
+    width: 1,
+    backgroundColor: '#EEEEEE',
+    alignSelf: 'stretch',
+    marginVertical: 4,
   },
   card: {
     width: '100%',
@@ -372,5 +504,48 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#F0F0F0',
     marginHorizontal: 24,
+  },
+  reviewsSection: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  reviewsSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  reviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reviewerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  reviewDate: {
+    fontSize: 13,
+    color: '#888',
+  },
+  reviewStars: {
+    flexDirection: 'row',
+    gap: 2,
+    marginBottom: 8,
+  },
+  reviewComment: {
+    fontSize: 15,
+    color: '#4B5563',
+    lineHeight: 22,
   },
 });

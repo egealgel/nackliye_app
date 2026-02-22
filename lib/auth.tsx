@@ -1,7 +1,30 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Session } from '@supabase/supabase-js';
+import { LogBox } from 'react-native';
 import { supabase } from '@/services/supabase';
 import { clearPushToken } from '@/services/notifications';
+
+const INVALID_REFRESH_TOKEN_PATTERNS = [
+  'Invalid Refresh Token',
+  'Refresh Token Not Found',
+  'refresh_token_not_found',
+  'AuthApiError',
+];
+
+function isInvalidRefreshTokenError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return INVALID_REFRESH_TOKEN_PATTERNS.some((p) =>
+    msg.toLowerCase().includes(p.toLowerCase())
+  );
+}
+
+async function clearSessionSilently(): Promise<void> {
+  try {
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch {
+    // Ignore - we're clearing invalid session
+  }
+}
 
 type Profile = {
   id: string;
@@ -9,6 +32,8 @@ type Profile = {
   phone: string;
   city: string;
   vehicle_type: string | null;
+  rating_avg: number | null;
+  total_jobs: number | null;
 };
 
 type AuthContextType = {
@@ -42,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data } = await supabase
         .from('profiles')
-        .select('id, name, phone, city, vehicle_type')
+        .select('id, name, phone, city, vehicle_type, rating_avg, total_jobs')
         .eq('id', userId)
         .single();
       setProfile(data);
@@ -67,30 +92,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
+    LogBox.ignoreLogs([
+      'AuthApiError',
+      'Invalid Refresh Token',
+      'Refresh Token Not Found',
+    ]);
+
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         if (session?.user?.id) {
-          return fetchProfile(session.user.id);
+          await fetchProfile(session.user.id);
         }
-      })
-      .catch(() => {
+      } catch (err) {
+        if (isInvalidRefreshTokenError(err)) {
+          await clearSessionSilently();
+        }
         setSession(null);
         setProfile(null);
-      })
-      .finally(() => {
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+
+    initSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user?.id) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      try {
+        if (event === 'SIGNED_OUT' && !session) {
+          setSession(null);
+          setProfile(null);
+          return;
+        }
+        setSession(session);
+        if (session?.user?.id) {
+          fetchProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch (err) {
+        if (isInvalidRefreshTokenError(err)) {
+          clearSessionSilently().then(() => {
+            setSession(null);
+            setProfile(null);
+          });
+        }
       }
     });
 

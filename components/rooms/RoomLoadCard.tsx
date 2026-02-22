@@ -14,7 +14,10 @@ import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
+import { useAuth } from '@/lib/auth';
 import { useLoadMessageSenders } from '@/hooks/useLoadMessageSenders';
+import { useLoadReview } from '@/hooks/useLoadReview';
+import ReviewModal from '@/components/reviews/ReviewModal';
 import {
   LoadWithDetails,
   formatWeight,
@@ -42,11 +45,24 @@ function formatPhoneForDial(phone: string): string {
 
 export default function RoomLoadCard({ load, currentUserId }: Props) {
   const router = useRouter();
+  const { refreshProfile } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [assigning, setAssigning] = useState<string | null>(null);
 
   const isOwner = currentUserId === load.user_id;
   const isAssigned = load.status === 'assigned';
+  const canRate =
+    ['assigned', 'in_transit', 'delivered'].includes(load.status) &&
+    (isOwner ? load.assigned_to : true) &&
+    (isOwner || currentUserId === load.assigned_to);
+  const reviewedId = isOwner ? load.assigned_to : load.user_id;
+  const reviewedName = isOwner ? load.assignedDriverName : load.ownerName;
+  const { hasReviewed, refresh: refreshReview } = useLoadReview(
+    expanded && canRate ? load.id : null,
+    currentUserId,
+    reviewedId || null
+  );
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const { senders, refresh } = useLoadMessageSenders(
     expanded && isOwner ? load.id : null,
     isOwner ? load.user_id : null,
@@ -97,10 +113,23 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
     });
   };
 
-  const openCall = (phone: string) => {
+  const openCall = async (phone: string) => {
     const tel = formatPhoneForDial(phone);
-    if (tel) Linking.openURL(`tel:${tel}`);
-    else Alert.alert('Hata', 'Telefon numarası bulunamadı.');
+    if (!tel) {
+      Alert.alert('Hata', 'Telefon numarası bulunamadı.');
+      return;
+    }
+    const url = `tel:${tel}`;
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (!canOpen) {
+        Alert.alert('Bilgi', 'Bu cihazda arama yapılamıyor');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Bilgi', 'Bu cihazda arama yapılamıyor');
+    }
   };
 
   const handleAraPress = async () => {
@@ -116,15 +145,15 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
       phone = data?.phone || '';
     }
 
-    const tel = formatPhoneForDial(phone);
-    if (tel) Linking.openURL(`tel:${tel}`);
-    else Alert.alert('Hata', 'Telefon numarası bulunamadı.');
+    await openCall(phone || '');
   };
 
   const hasDimensions = load.width_cm || load.length_cm || load.height_cm;
 
   const otherPartyId = isOwner ? null : load.user_id;
 
+  const hasCounterparty = ['assigned', 'in_transit', 'delivered'].includes(load.status) &&
+    (isOwner ? load.assigned_to : currentUserId === load.assigned_to);
   const statusLabel =
     load.status === 'assigned'
       ? 'İŞ VERİLDİ'
@@ -202,7 +231,22 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>İlan Sahibi</Text>
-            <Text style={styles.detailValue}>{load.ownerName}</Text>
+            <View style={styles.detailValueRow}>
+              <Text style={styles.detailValue}>{load.ownerName}</Text>
+              {(load.ownerRatingAvg ?? 0) > 0 && (
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Ionicons
+                      key={s}
+                      name={(load.ownerRatingAvg ?? 0) >= s ? 'star' : 'star-outline'}
+                      size={12}
+                      color="#F59E0B"
+                      style={styles.starIcon}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
 
           <View style={styles.detailRow}>
@@ -320,8 +364,8 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
             </Text>
           )}
 
-          {/* --- Assigned or non-owner: Mesaj + Ara (owner→driver, non-owner→owner) --- */}
-          {isAssigned && (
+          {/* --- Assigned, in_transit, delivered: Mesaj + Ara (owner→driver, driver→owner) --- */}
+          {hasCounterparty && (
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={styles.mesajButton}
@@ -346,6 +390,43 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
                 <Text style={styles.araButtonText}>Ara</Text>
               </TouchableOpacity>
             </View>
+          )}
+
+          {/* --- Puanla / Puanlandı: both owner and driver can rate the other party (one review per user per load) --- */}
+          {canRate && reviewedId && (
+            <>
+              <View style={styles.divider} />
+              {hasReviewed ? (
+                <View style={styles.puanlandiBadge}>
+                  <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                  <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+                </View>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.puanlaButton}
+                    onPress={() => setShowReviewModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="star" size={20} color="#FFFFFF" />
+                    <Text style={styles.puanlaButtonText}>
+                      {(reviewedName || 'Kullanıcı')} puanla
+                    </Text>
+                  </TouchableOpacity>
+                  <ReviewModal
+                    visible={showReviewModal}
+                    onClose={() => setShowReviewModal(false)}
+                    onSuccess={() => {
+                      refreshReview();
+                      refreshProfile();
+                    }}
+                    loadId={load.id}
+                    reviewedId={reviewedId}
+                    reviewedName={reviewedName || 'Kullanıcı'}
+                  />
+                </>
+              )}
+            </>
           )}
         </View>
       )}
@@ -460,6 +541,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  detailValueRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1,
+  },
+  starIcon: {
+    marginLeft: 0,
   },
   descriptionBox: {
     backgroundColor: '#F9FAFB',
@@ -587,5 +683,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  puanlaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F59E0B',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  puanlaButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  puanlandiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  puanlandiText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#16A34A',
   },
 });
