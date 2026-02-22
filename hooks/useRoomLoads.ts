@@ -241,3 +241,100 @@ export function useAllLoads() {
 
   return { loads, isLoading, refresh: fetchLoads };
 }
+
+export function useMyLoads(userId: string | undefined) {
+  const [loads, setLoads] = useState<LoadWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const isMounted = useRef(true);
+
+  const fetchLoads = useCallback(async () => {
+    if (!userId) {
+      if (isMounted.current) {
+        setLoads([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const { data: loadsData, error: loadsErr } = await supabase
+      .from('loads')
+      .select('*')
+      .or(`user_id.eq.${userId},assigned_to.eq.${userId}`)
+      .in('status', ['active', 'has_offers', 'assigned', 'in_transit', 'delivered']);
+
+    if (loadsErr || !loadsData) {
+      if (isMounted.current) {
+        setLoads([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (loadsData.length === 0) {
+      if (isMounted.current) {
+        setLoads([]);
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    const allUserIds = new Set<string>();
+    loadsData.forEach((l) => {
+      allUserIds.add(l.user_id);
+      if (l.assigned_to) allUserIds.add(l.assigned_to);
+    });
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, phone, rating_avg')
+      .in('id', [...allUserIds]);
+
+    const profileMap = new Map<string, ProfileSnippet>();
+    (profiles || []).forEach((p) => profileMap.set(p.id, p));
+
+    const mapped: LoadWithDetails[] = loadsData.map((l) => ({
+      ...l,
+      ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
+      ownerPhone: profileMap.get(l.user_id)?.phone || '',
+      ownerRatingAvg: profileMap.get(l.user_id)?.rating_avg ?? null,
+      assignedDriverName: l.assigned_to
+        ? profileMap.get(l.assigned_to)?.name
+        : undefined,
+      assignedDriverPhone: l.assigned_to
+        ? profileMap.get(l.assigned_to)?.phone
+        : undefined,
+      assignedDriverRatingAvg: l.assigned_to
+        ? (profileMap.get(l.assigned_to)?.rating_avg ?? null)
+        : undefined,
+    }));
+
+    const result = sortLoadsByStatus(mapped);
+
+    if (isMounted.current) {
+      setLoads(result);
+      setIsLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    isMounted.current = true;
+    setIsLoading(true);
+    fetchLoads();
+
+    const channel = supabase
+      .channel('my-loads')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'loads' },
+        () => fetchLoads()
+      )
+      .subscribe();
+
+    return () => {
+      isMounted.current = false;
+      supabase.removeChannel(channel);
+    };
+  }, [userId, fetchLoads]);
+
+  return { loads, isLoading, refresh: fetchLoads };
+}

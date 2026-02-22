@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useUnreadCount } from '@/lib/UnreadCountContext';
 
 function CreateTabIcon() {
@@ -40,6 +41,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      initialRouteName="rooms"
       screenOptions={{
         tabBarActiveTintColor: '#FF6B35',
         tabBarInactiveTintColor: '#999',
@@ -65,14 +67,8 @@ export default function TabLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{
-          title: 'Ana Sayfa',
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="home" size={26} color={color} />
-          ),
-        }}
+        options={{ href: null }}
       />
-
       <Tabs.Screen
         name="rooms"
         options={{
@@ -80,6 +76,17 @@ export default function TabLayout() {
           headerShown: false,
           tabBarIcon: ({ color }) => (
             <Ionicons name="grid" size={26} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="jobs"
+        options={{
+          title: 'İşlerim',
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="clipboard-text-outline" size={26} color={color} />
           ),
         }}
       />

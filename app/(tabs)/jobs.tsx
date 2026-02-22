@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,30 +8,19 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/lib/auth';
-import { VehicleType, LoadWithDetails } from '@/types/load';
-import { useRoomLoads, useRoomCounts } from '@/hooks/useRoomLoads';
-import RoomTabs from '@/components/rooms/RoomTabs';
+import { useMyLoads } from '@/hooks/useRoomLoads';
+import { LoadWithDetails } from '@/types/load';
 import RoomLoadCard from '@/components/rooms/RoomLoadCard';
 
 const PRIMARY = '#FF6B35';
 
-export default function RoomsScreen() {
-  const { profile, session } = useAuth();
-  const [selectedRoom, setSelectedRoom] = useState<VehicleType>('kamyonet');
-  const { loads, isLoading, refresh } = useRoomLoads(selectedRoom);
-  const { counts, refresh: refreshCounts } = useRoomCounts();
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshCounts();
-    }, [refreshCounts]),
-  );
-  const [refreshing, setRefreshing] = useState(false);
-
-  const currentUserId = session?.user?.id || '';
+export default function JobsScreen() {
+  const { session } = useAuth();
+  const currentUserId = session?.user?.id ?? '';
+  const { loads, isLoading, refresh } = useMyLoads(currentUserId);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -43,7 +32,7 @@ export default function RoomsScreen() {
     ({ item }: { item: LoadWithDetails }) => (
       <RoomLoadCard load={item} currentUserId={currentUserId} />
     ),
-    [currentUserId],
+    [currentUserId]
   );
 
   const keyExtractor = useCallback((item: LoadWithDetails) => item.id, []);
@@ -51,17 +40,11 @@ export default function RoomsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>
-          Merhaba, {profile?.name ?? 'Kullanıcı'}!
+        <Text style={styles.title}>İşlerim</Text>
+        <Text style={styles.subtitle}>
+          Paylaştığınız yükler ve size atanan işler
         </Text>
-        <Text style={styles.title}>Odalar</Text>
       </View>
-
-      <RoomTabs
-        selected={selectedRoom}
-        onSelect={setSelectedRoom}
-        counts={counts}
-      />
 
       {isLoading ? (
         <View style={styles.center}>
@@ -69,8 +52,11 @@ export default function RoomsScreen() {
         </View>
       ) : loads.length === 0 ? (
         <View style={styles.center}>
-          <Ionicons name="file-tray-outline" size={56} color="#D1D5DB" />
-          <Text style={styles.emptyText}>Bu odada henüz yük yok</Text>
+          <Ionicons name="briefcase-outline" size={56} color="#D1D5DB" />
+          <Text style={styles.emptyText}>Henüz işiniz yok</Text>
+          <Text style={styles.emptySubtitle}>
+            Odalar sekmesinden yük paylaşın veya başkalarının yüklerine teklif verin.
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -100,18 +86,20 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 4,
-  },
-  greeting: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 2,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   title: {
     fontSize: 24,
     fontWeight: '800',
     color: '#1A1A1A',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
   center: {
     flex: 1,
@@ -120,12 +108,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  emptySubtitle: {
+    fontSize: 14,
     color: '#9CA3AF',
-    fontWeight: '500',
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
   list: {
-    paddingTop: 4,
+    paddingTop: 12,
     paddingBottom: 20,
   },
 });
