@@ -91,7 +91,7 @@ function buildSections(loads: LoadWithDetails[]): LoadSection[] {
   const sections: LoadSection[] = [];
   if (active.length) sections.push({ title: '', data: active });
   if (delivered.length)
-    sections.push({ title: 'Tamamlanan İşler', data: delivered });
+    sections.push({ title: '', data: delivered });
   return sections;
 }
 
@@ -510,21 +510,21 @@ function TakenLoadCard({
   };
 
   return (
-    <View style={[styles.card, isDelivered && styles.cardDimmed]}>
-      <View style={styles.routeRow}>
+    <View style={[styles.card, styles.takenCard, isDelivered && styles.cardDimmed]}>
+      <View style={[styles.routeRow, styles.takenRouteRow]}>
         <View style={[styles.dot, styles.dotOrigin]} />
         <Text style={[styles.routeText, isDelivered && styles.textDimmed]}>
           {load.from_city} / {load.from_district}
         </Text>
       </View>
-      <View style={styles.routeRow}>
+      <View style={[styles.routeRow, styles.takenRouteRow]}>
         <View style={[styles.dot, styles.dotDest]} />
         <Text style={[styles.routeText, isDelivered && styles.textDimmed]}>
           {load.to_city} / {load.to_district}
         </Text>
       </View>
 
-      <View style={styles.weightTimeRow}>
+      <View style={[styles.weightTimeRow, styles.takenWeightTimeRow]}>
         <MaterialCommunityIcons
           name="package-variant"
           size={15}
@@ -537,25 +537,25 @@ function TakenLoadCard({
           name="time-outline"
           size={14}
           color={isDelivered ? '#9CA3AF' : '#6B7280'}
-          style={{ marginLeft: 10 }}
+          style={{ marginLeft: 6 }}
         />
         <Text style={[styles.metaText, isDelivered && styles.textDimmed]}>
           {timeAgo(load.created_at)}
         </Text>
       </View>
 
-      <View style={styles.ownerSection}>
-        <Text style={styles.ownerLabel}>İlan Sahibi</Text>
+      <View style={[styles.ownerSection, styles.takenOwnerSection]}>
+        <Text style={[styles.ownerLabel, styles.takenOwnerLabel]}>İlan Sahibi</Text>
         <Text style={[styles.ownerName, isDelivered && styles.textDimmed]}>
           {load.ownerName}
         </Text>
         {load.ownerPhone && !isDelivered ? (
-          <Text style={styles.ownerPhone}>{load.ownerPhone}</Text>
+          <Text style={[styles.ownerPhone, styles.takenOwnerPhone]}>{load.ownerPhone}</Text>
         ) : null}
       </View>
 
       {!isDelivered && (
-        <View style={styles.buttonRow}>
+        <View style={[styles.buttonRow, styles.takenButtonRow]}>
           <TouchableOpacity
             style={styles.mesajButton}
             onPress={openChat}
@@ -577,7 +577,7 @@ function TakenLoadCard({
 
       {isAssigned && currentUserId === load.assigned_to && (
         <TouchableOpacity
-          style={styles.completeButton}
+          style={[styles.completeButton, styles.takenCompleteButton]}
           onPress={handleComplete}
           disabled={completing}
           activeOpacity={0.8}
@@ -594,7 +594,7 @@ function TakenLoadCard({
       )}
 
       {isDelivered && (
-        <View style={styles.deliveredRow}>
+        <View style={[styles.deliveredRow, styles.takenDeliveredRow]}>
           <View style={styles.deliveredBadge}>
             <Ionicons name="checkmark-circle" size={16} color="#6B7280" />
             <Text style={styles.deliveredBadgeText}>Teslim Edildi</Text>
@@ -849,6 +849,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  takenCard: {
+    padding: 10,
+  },
   cardDimmed: {
     opacity: 0.65,
   },
@@ -878,6 +881,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+  },
+  takenRouteRow: {
+    marginBottom: 2,
   },
   dot: {
     width: 8,
@@ -977,16 +983,27 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 4,
   },
+  takenWeightTimeRow: {
+    marginTop: 4,
+    marginBottom: 2,
+  },
 
   // ── Taken card: owner section ──
   ownerSection: {
     marginTop: 8,
     marginBottom: 12,
   },
+  takenOwnerSection: {
+    marginTop: 4,
+    marginBottom: 4,
+  },
   ownerLabel: {
     fontSize: 13,
     color: '#9CA3AF',
     marginBottom: 2,
+  },
+  takenOwnerLabel: {
+    marginBottom: 1,
   },
   ownerName: {
     fontSize: 16,
@@ -996,7 +1013,10 @@ const styles = StyleSheet.create({
   ownerPhone: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 2,
+    marginTop: 1,
+  },
+  takenOwnerPhone: {
+    marginTop: 0,
   },
 
   // ── Buttons ──
@@ -1004,11 +1024,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  takenButtonRow: {
+    marginTop: 4,
+    gap: 8,
+  },
   mesajButton: {
     flex: 1,
     flexDirection: 'row',
     backgroundColor: PRIMARY,
-    paddingVertical: 13,
+    paddingVertical: 10,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1024,8 +1048,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: GREEN,
-    paddingHorizontal: 20,
-    paddingVertical: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 12,
     gap: 6,
   },
@@ -1040,7 +1064,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: GREEN,
-    paddingVertical: 13,
+    paddingVertical: 10,
     borderRadius: 12,
     marginTop: 10,
     gap: 8,
@@ -1050,18 +1074,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  takenCompleteButton: {
+    marginTop: 4,
+    paddingVertical: 8,
+  },
 
   deliveredRow: {
     alignItems: 'center',
     marginTop: 10,
   },
+  takenDeliveredRow: {
+    marginTop: 4,
+  },
   deliveredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   deliveredBadgeText: {
@@ -1090,7 +1121,7 @@ const styles = StyleSheet.create({
   },
 
   list: {
-    paddingTop: 12,
+    paddingTop: 4,
     paddingBottom: 24,
   },
 });
