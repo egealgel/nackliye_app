@@ -193,32 +193,107 @@ function useLoadsByField(
     };
   }, [fetchLoads, channelName]);
 
-  return { loads, isLoading, refresh: fetchLoads };
+  const removeLoad = useCallback((loadId: string) => {
+    setLoads((prev) => prev.filter((l) => l.id !== loadId));
+  }, []);
+
+  return { loads, isLoading, refresh: fetchLoads, removeLoad };
 }
 
 // ────────────────────────────────────────────────────────
 // PostedLoadCard — "Paylaştığım İşler" tab
 // ────────────────────────────────────────────────────────
 
-function PostedLoadCard({ load }: { load: LoadWithDetails }) {
+function PostedLoadCard({
+  load,
+  onRemove,
+}: {
+  load: LoadWithDetails;
+  onRemove: (loadId: string) => void;
+}) {
+  const router = useRouter();
   const isDelivered = load.status === 'delivered';
   const isAssigned =
     load.status === 'assigned' || load.status === 'in_transit';
+  const canModify = ['active', 'has_offers'].includes(load.status);
   const badge = getStatusBadge(load.status);
+
+  const handleEdit = () => {
+    if (!canModify) {
+      Alert.alert('Uyarı', 'İş verilmiş yükler düzenlenemez.');
+      return;
+    }
+    router.push({ pathname: '/edit-load', params: { loadId: load.id } });
+  };
+
+  const handleDelete = () => {
+    if (!canModify) {
+      Alert.alert('Uyarı', 'İş verilmiş yükler silinemez.');
+      return;
+    }
+    Alert.alert(
+      'Yükü Sil',
+      'Bu yükü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await supabase
+              .from('loads')
+              .delete()
+              .eq('id', load.id);
+            if (error) {
+              Alert.alert('Hata', error.message || 'Silme işlemi başarısız.');
+              return;
+            }
+            onRemove(load.id);
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <View style={[styles.card, isDelivered && styles.cardDimmed]}>
-      <View style={styles.routeRow}>
-        <View style={[styles.dot, styles.dotOrigin]} />
-        <Text style={[styles.routeText, isDelivered && styles.textDimmed]}>
-          {load.from_city} / {load.from_district}
-        </Text>
-      </View>
-      <View style={styles.routeRow}>
-        <View style={[styles.dot, styles.dotDest]} />
-        <Text style={[styles.routeText, isDelivered && styles.textDimmed]}>
-          {load.to_city} / {load.to_district}
-        </Text>
+      <View style={styles.cardTopRow}>
+        <View style={{ flex: 1 }}>
+          <View style={styles.routeRow}>
+            <View style={[styles.dot, styles.dotOrigin]} />
+            <Text
+              style={[styles.routeText, isDelivered && styles.textDimmed]}
+            >
+              {load.from_city} / {load.from_district}
+            </Text>
+          </View>
+          <View style={styles.routeRow}>
+            <View style={[styles.dot, styles.dotDest]} />
+            <Text
+              style={[styles.routeText, isDelivered && styles.textDimmed]}
+            >
+              {load.to_city} / {load.to_district}
+            </Text>
+          </View>
+        </View>
+        {canModify && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              onPress={handleEdit}
+              style={styles.cardActionBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="create-outline" size={18} color="#6B7280" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={styles.cardActionBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#DC2626" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <View style={styles.cardMeta}>
@@ -542,7 +617,7 @@ export default function JobsScreen() {
   const renderItem = useCallback(
     ({ item }: { item: LoadWithDetails }) => {
       if (activeTab === 'posted') {
-        return <PostedLoadCard load={item} />;
+        return <PostedLoadCard load={item} onRemove={posted.removeLoad} />;
       }
       return (
         <TakenLoadCard
@@ -552,7 +627,7 @@ export default function JobsScreen() {
         />
       );
     },
-    [activeTab, currentUserId, taken.refresh],
+    [activeTab, currentUserId, posted.removeLoad, taken.refresh],
   );
 
   const postedCount = posted.loads.length;
@@ -717,6 +792,26 @@ const styles = StyleSheet.create({
   },
   cardDimmed: {
     opacity: 0.65,
+  },
+
+  // ── Card top row (route + actions) ──
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    gap: 4,
+    marginLeft: 8,
+    marginTop: 2,
+  },
+  cardActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── Route rows ──

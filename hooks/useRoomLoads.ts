@@ -201,7 +201,11 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
     };
   }, [vehicleType, fetchLoads]);
 
-  return { loads, isLoading, refresh: fetchLoads };
+  const removeLoad = useCallback((loadId: string) => {
+    setLoads((prev) => prev.filter((l) => l.id !== loadId));
+  }, []);
+
+  return { loads, isLoading, refresh: fetchLoads, removeLoad };
 }
 
 export function useRoomCounts() {

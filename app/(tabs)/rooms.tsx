@@ -31,7 +31,7 @@ export default function RoomsScreen() {
   const { profile, session } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<VehicleType>('kamyonet');
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
-  const { loads, isLoading, refresh } = useRoomLoads(selectedRoom, filters);
+  const { loads, isLoading, refresh, removeLoad } = useRoomLoads(selectedRoom, filters);
   const { counts, refresh: refreshCounts } = useRoomCounts();
 
   useFocusEffect(
@@ -51,9 +51,9 @@ export default function RoomsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: LoadWithDetails }) => (
-      <RoomLoadCard load={item} currentUserId={currentUserId} />
+      <RoomLoadCard load={item} currentUserId={currentUserId} onDelete={removeLoad} />
     ),
-    [currentUserId],
+    [currentUserId, removeLoad],
   );
 
   const keyExtractor = useCallback((item: LoadWithDetails) => item.id, []);

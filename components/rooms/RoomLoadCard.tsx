@@ -32,6 +32,7 @@ const GREEN = '#16A34A';
 type Props = {
   load: LoadWithDetails;
   currentUserId: string;
+  onDelete?: (loadId: string) => void;
 };
 
 function formatPhoneForDial(phone: string): string {
@@ -44,7 +45,7 @@ function formatPhoneForDial(phone: string): string {
   return digits ? `+${digits}` : '';
 }
 
-export default function RoomLoadCard({ load, currentUserId }: Props) {
+export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
   const router = useRouter();
   const { refreshProfile } = useAuth();
   const [expanded, setExpanded] = useState(false);
@@ -230,6 +231,61 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
       {expanded && (
         <View style={styles.details}>
           <View style={styles.divider} />
+
+          {isOwner && ['active', 'has_offers'].includes(load.status) && (
+            <View style={styles.ownerActions}>
+              <TouchableOpacity
+                style={styles.ownerActionBtn}
+                onPress={() =>
+                  router.push({
+                    pathname: '/edit-load',
+                    params: { loadId: load.id },
+                  })
+                }
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={18} color={PRIMARY} />
+                <Text style={styles.ownerActionText}>Düzenle</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.ownerActionBtn, styles.ownerActionBtnDanger]}
+                onPress={() =>
+                  Alert.alert(
+                    'Yükü Sil',
+                    'Bu yükü silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+                    [
+                      { text: 'İptal', style: 'cancel' },
+                      {
+                        text: 'Sil',
+                        style: 'destructive',
+                        onPress: async () => {
+                          const { error } = await supabase
+                            .from('loads')
+                            .delete()
+                            .eq('id', load.id);
+                          if (error) {
+                            Alert.alert(
+                              'Hata',
+                              error.message || 'Silme işlemi başarısız.',
+                            );
+                            return;
+                          }
+                          onDelete?.(load.id);
+                          router.back();
+                        },
+                      },
+                    ],
+                  )
+                }
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                <Text style={[styles.ownerActionText, { color: '#DC2626' }]}>
+                  Sil
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>İlan Sahibi</Text>
@@ -536,6 +592,29 @@ const styles = StyleSheet.create({
   },
   details: {
     marginTop: 4,
+  },
+  ownerActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  ownerActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#FFF7ED',
+  },
+  ownerActionBtnDanger: {
+    backgroundColor: '#FEF2F2',
+  },
+  ownerActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: PRIMARY,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
