@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   },
   button: {
     height: 56,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#2563EB',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   },
   modalClose: {
     fontSize: 16,
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   searchInput: {
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   listItemTextSelected: {
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   vehicleItem: {
@@ -377,12 +377,12 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
   vehicleItemTextSelected: {
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   checkmark: {
     fontSize: 20,
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '700',
   },
   separator: {

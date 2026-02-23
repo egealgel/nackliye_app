@@ -14,7 +14,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
 import { LoadWithDetails, formatWeight } from '@/types/load';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
 
 type Props = {

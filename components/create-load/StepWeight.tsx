@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { formatWeight } from '@/types/load';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 const QUICK_OPTIONS = [
   { label: '100 kg', value: 100 },

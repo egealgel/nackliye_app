@@ -20,8 +20,8 @@ Hedef kitle cogunlukla ilkokul/ortaokul mezunu nakliyeciler.
 - Minimum font size: 16px (body), 20px (basliklar)
 - Butonlar buyuk: minimum 48px yukseklik
 - Turkce UI: "Basla", "Yuk Paylas", "Teklif Ver"
-- Ana renk: #FF6B35 (turuncu)
-- Durum renkleri: Yesil=Aktif, Sari=Teklif Var, Kirmizi=Kapandi
+- Ana renk: #2563EB (koyu mavi)
+- Durum renkleri: Yeşil=Aktif, Mavi=İş Verildi, Kırmızı=Sil/Trash, Gri=Teslim Edildi
 - Maksimum 3 dokunusta her islem tamamlanmali
 
 ## Arac Turleri

@@ -14,7 +14,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { supabase } from '@/services/supabase';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 const STAR_SIZE = 44;
 
 function formatNameForQuestion(name: string): string {

@@ -500,7 +500,7 @@ export default function ChatScreen() {
           ) : null}
         </View>
         <TouchableOpacity onPress={openCall} style={styles.callBtn}>
-          <Ionicons name="call" size={22} color="#FF6B35" />
+          <Ionicons name="call" size={22} color="#2563EB" />
         </TouchableOpacity>
       </View>
 
@@ -521,7 +521,7 @@ export default function ChatScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#FF6B35" />
+          <ActivityIndicator size="large" color="#2563EB" />
           <Text style={styles.loadingText}>Yükleniyor...</Text>
         </View>
       ) : messages.length === 0 ? (
@@ -753,7 +753,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   bubbleMe: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#2563EB',
     borderBottomRightRadius: 4,
   },
   bubbleThem: {
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   docDownloadText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FF6B35',
+    color: '#2563EB',
   },
   docDownloadTextMe: {
     color: '#FFFFFF',
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
   },

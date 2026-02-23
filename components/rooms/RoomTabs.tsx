@@ -9,7 +9,7 @@ type Props = {
   counts: Record<string, number>;
 };
 
-const ORANGE = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 const ROW1 = ['minivan', 'kamyonet', 'kamyon'] as VehicleType[];
 const ROW2 = ['tir', 'damperli'] as VehicleType[];
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   buttonActive: {
-    backgroundColor: ORANGE,
-    borderColor: ORANGE,
+    backgroundColor: PRIMARY,
+    borderColor: PRIMARY,
   },
   buttonName: {
     fontSize: 13,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: ORANGE,
+    backgroundColor: PRIMARY,
     borderRadius: 12,
     minWidth: 22,
     height: 22,

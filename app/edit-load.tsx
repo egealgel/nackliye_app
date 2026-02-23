@@ -28,7 +28,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 const VEHICLE_OPTIONS: VehicleType[] = [
   'minivan',
   'kamyonet',

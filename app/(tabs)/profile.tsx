@@ -104,7 +104,7 @@ export default function ProfileScreen() {
       <View style={styles.card}>
         <View style={styles.row}>
           <View style={styles.iconBox}>
-            <Ionicons name="call-outline" size={20} color="#FF6B35" />
+            <Ionicons name="call-outline" size={20} color="#2563EB" />
           </View>
           <Text style={styles.label}>Telefon</Text>
           <Text style={styles.value} numberOfLines={1}>{phone}</Text>
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
           activeOpacity={0.6}
         >
           <View style={styles.iconBox}>
-            <Ionicons name="location-outline" size={20} color="#FF6B35" />
+            <Ionicons name="location-outline" size={20} color="#2563EB" />
           </View>
           <Text style={styles.label}>Şehir</Text>
           <Text style={styles.value} numberOfLines={1}>{profile?.city ?? '-'}</Text>
@@ -133,7 +133,7 @@ export default function ProfileScreen() {
           activeOpacity={0.6}
         >
           <View style={styles.iconBox}>
-            <Ionicons name="car-outline" size={20} color="#FF6B35" />
+            <Ionicons name="car-outline" size={20} color="#2563EB" />
           </View>
           <Text style={styles.label}>Araç Tipi</Text>
           <Text style={styles.value} numberOfLines={1}>
@@ -188,7 +188,7 @@ export default function ProfileScreen() {
                   {item}
                 </Text>
                 {item === profile?.city && (
-                  <Ionicons name="checkmark" size={22} color="#FF6B35" />
+                  <Ionicons name="checkmark" size={22} color="#2563EB" />
                 )}
               </TouchableOpacity>
             )}
@@ -224,7 +224,7 @@ export default function ProfileScreen() {
                   {item.label}
                 </Text>
                 {item.value === profile?.vehicle_type && (
-                  <Ionicons name="checkmark" size={22} color="#FF6B35" />
+                  <Ionicons name="checkmark" size={22} color="#2563EB" />
                 )}
               </TouchableOpacity>
             )}
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   modalClose: {
     fontSize: 16,
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   modalNote: {
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listItemTextSelected: {
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   separator: {

@@ -21,7 +21,7 @@ type Props = {
   onHide: (loadId: string, otherUserId: string) => void;
 };
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 function routeSubtitle(
   fromCity: string,

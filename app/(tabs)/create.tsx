@@ -26,7 +26,7 @@ import StepDescription from '@/components/create-load/StepDescription';
 import StepReview from '@/components/create-load/StepReview';
 
 const TOTAL_STEPS = 8;
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 const INITIAL_FORM: LoadFormData = {
   fromCity: '',

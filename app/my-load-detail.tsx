@@ -24,7 +24,7 @@ import {
   VEHICLE_LABELS,
 } from '@/types/load';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
 
 function formatPhoneForDial(phone: string): string {
@@ -296,7 +296,7 @@ export default function MyLoadDetailScreen() {
 
         {isAssigned && load.assignedDriverName ? (
           <View style={styles.assignedBadge}>
-            <Ionicons name="checkmark-circle" size={22} color={GREEN} />
+            <Ionicons name="checkmark-circle" size={22} color={PRIMARY} />
             <Text style={styles.assignedBadgeText}>İş Verildi — {load.assignedDriverName}</Text>
           </View>
         ) : null}
@@ -434,10 +434,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginHorizontal: 16,
     marginTop: 16,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#EFF6FF',
     borderRadius: 12,
   },
-  assignedBadgeText: { fontSize: 16, fontWeight: '700', color: GREEN },
+  assignedBadgeText: { fontSize: 16, fontWeight: '700', color: PRIMARY },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',

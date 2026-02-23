@@ -145,7 +145,7 @@ export const ROOM_LIST: {
 }[] = [
   { type: 'minivan', label: 'Minivan', range: '0-800 kg', icon: 'van-utility', color: '#4CAF50', bg: '#E8F5E9' },
   { type: 'kamyonet', label: 'Kamyonet', range: '0-3.5t', icon: 'truck-outline', color: '#2196F3', bg: '#E3F2FD' },
-  { type: 'kamyon', label: 'Kamyon', range: '0-12t', icon: 'truck', color: '#FF6B35', bg: '#FFF0E8' },
+  { type: 'kamyon', label: 'Kamyon', range: '0-12t', icon: 'truck', color: '#2563EB', bg: '#EFF6FF' },
   { type: 'tir', label: 'Tır', range: '0-25t', icon: 'truck-trailer', color: '#9C27B0', bg: '#F3E5F5' },
   { type: 'damperli', label: 'Damperli', range: '25t+', icon: 'dump-truck', color: '#F44336', bg: '#FFEBEE' },
 ];

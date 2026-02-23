@@ -43,7 +43,7 @@ export default function TabLayout() {
     <Tabs
       initialRouteName="rooms"
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B35',
+        tabBarActiveTintColor: '#2563EB',
         tabBarInactiveTintColor: '#999',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarItemStyle: { flex: 1 },
@@ -134,11 +134,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -24,
-    shadowColor: '#FF6B35',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,

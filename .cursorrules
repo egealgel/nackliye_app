@@ -1,0 +1,49 @@
+# yüküstü - Cursor Rules
+
+## Proje Hakkında
+
+Bu bir nakliye/yük paylaşım mobil uygulamasıdır.
+Türkiye'deki kamyon şoförleri ve yük göndericileri için.
+Hedef kitle çoğunlukla ilkokul/ortaokul mezunu nakliyeciler.
+
+## Teknoloji Stack
+
+- Frontend: React Native + Expo (expo-router)
+- Backend: Supabase (PostgreSQL + Auth + Realtime + Storage)
+- Language: TypeScript
+
+## Tasarım Kuralları (ÇOK ÖNEMLİ)
+
+- Her şey BASIT olmalı. Teknik terim kullanma.
+- Minimum font size: 16px (body), 20px (başlıklar)
+- Butonlar büyük: minimum 48px yükseklik
+- Türkçe UI: "Başla", "Yük Paylaş", "Teklif Ver"
+- Ana renk: #2563EB (koyu mavi)
+- Durum renkleri: Yeşil=Aktif, Mavi=İş Verildi, Kırmızı=Sil/Trash, Gri=Teslim Edildi
+- Maksimum 3 dokunuşta her işlem tamamlanmalı
+
+## Araç Türleri
+
+- Minivan/Panelvan (0-800 kg)
+- Kamyonet (0-3.500 kg)
+- Kamyon (0-12.000 kg)
+- Tır/Kirkayak (0-25.000 kg)
+- Damperli (25.000+ kg)
+
+## Yük Durumları
+
+active -> has_offers -> assigned -> in_transit -> delivered
+
+## Veritabanı
+
+Supabase kullanıyoruz. Tablolar: profiles, loads, offers, messages, reviews, notifications
+Row Level Security (RLS) aktif.
+
+## Dosya Yapısı
+
+/app - Expo Router ekranları
+/components - Tekrar kullanılabilir bileşenler
+/services - Supabase client ve API fonksiyonları
+/hooks - Custom React hooks
+/utils - Yardımcı fonksiyonlar
+/types - TypeScript type tanımları

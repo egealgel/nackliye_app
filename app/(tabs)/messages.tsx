@@ -14,7 +14,7 @@ import { useUnreadCount } from '@/lib/UnreadCountContext';
 import { useConversations, type Conversation } from '@/hooks/useConversations';
 import ConversationRow from '@/components/ConversationRow';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 export default function MessagesScreen() {
   const { session } = useAuth();

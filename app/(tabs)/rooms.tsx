@@ -17,7 +17,7 @@ import RoomTabs from '@/components/rooms/RoomTabs';
 import RoomFilterBar from '@/components/rooms/RoomFilterBar';
 import RoomLoadCard from '@/components/rooms/RoomLoadCard';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 const VALID_ROOMS: VehicleType[] = ['minivan', 'kamyonet', 'kamyon', 'tir', 'damperli'];
 

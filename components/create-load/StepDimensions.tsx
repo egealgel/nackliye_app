@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 type Props = {
   width?: number;

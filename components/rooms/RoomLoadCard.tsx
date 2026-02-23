@@ -24,7 +24,7 @@ import {
   VEHICLE_LABELS,
 } from '@/types/load';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
 
 type Props = {
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E6F9E6',
   },
   statusBadgeAssigned: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#2563EB',
   },
   statusBadgeText: {
     fontSize: 12,

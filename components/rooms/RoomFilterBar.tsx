@@ -15,7 +15,7 @@ import { TURKISH_CITIES } from '@/constants/turkishCities';
 import { DISTRICTS } from '@/constants/districts';
 import type { DateFilter, StatusFilter, RoomFilters } from '@/hooks/useRoomLoads';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 const DATE_OPTIONS: { value: DateFilter; label: string }[] = [
   { value: 'today', label: 'Bugün' },

@@ -25,7 +25,7 @@ import {
   timeAgo,
 } from '@/types/load';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
 
 type TabKey = 'posted' | 'taken';
@@ -110,7 +110,7 @@ function getStatusBadge(status: string) {
       return { label: 'Aktif', bg: '#E6F9E6', color: '#22C55E' };
     case 'assigned':
     case 'in_transit':
-      return { label: 'İş Verildi', bg: '#FFF7ED', color: '#EA580C' };
+      return { label: 'İş Verildi', bg: '#EFF6FF', color: '#2563EB' };
     default:
       return { label: 'Teslim Edildi', bg: '#F3F4F6', color: '#6B7280' };
   }

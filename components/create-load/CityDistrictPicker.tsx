@@ -11,7 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { TURKISH_CITIES } from '@/constants/turkishCities';
 import { DISTRICTS } from '@/constants/districts';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 type Props = {
   title: string;

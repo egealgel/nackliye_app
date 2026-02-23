@@ -127,7 +127,7 @@ export default function VerifyScreen() {
 
         {loading && (
           <ActivityIndicator
-            color="#FF6B35"
+            color="#2563EB"
             size="large"
             style={{ marginTop: 24 }}
           />
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 18,
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   title: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     borderColor: '#F5F5F5',
   },
   codeInputFilled: {
-    borderColor: '#FF6B35',
+    borderColor: '#2563EB',
     backgroundColor: '#FFF5F0',
   },
   resendButton: {
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 16,
-    color: '#FF6B35',
+    color: '#2563EB',
     fontWeight: '600',
   },
   resendTextDisabled: {
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   verifyButton: {
     height: 56,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#2563EB',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',

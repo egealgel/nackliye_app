@@ -16,7 +16,7 @@ import {
   formatWeight,
 } from '@/types/load';
 
-const PRIMARY = '#FF6B35';
+const PRIMARY = '#2563EB';
 
 const VEHICLE_ORDER: VehicleType[] = [
   'minivan',
