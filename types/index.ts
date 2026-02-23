@@ -1,2 +1,2 @@
-// Shared type definitions for the Nackliye logistics app
+// Shared type definitions for the yüküstü logistics app
 export {};

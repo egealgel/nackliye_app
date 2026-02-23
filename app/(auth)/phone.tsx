@@ -59,7 +59,7 @@ export default function PhoneScreen() {
     >
       <View style={styles.content}>
         <Text style={styles.icon}>🚛</Text>
-        <Text style={styles.title}>Nackliye</Text>
+        <Text style={styles.title}>yüküstü</Text>
         <Text style={styles.subtitle}>Telefon numaranızla giriş yapın</Text>
 
         <View style={styles.phoneRow}>

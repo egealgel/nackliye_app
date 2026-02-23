@@ -76,7 +76,7 @@ export default function CompleteProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.icon}>👋</Text>
-        <Text style={styles.title}>Hoş Geldiniz!</Text>
+        <Text style={styles.title}>yüküstü'ye hoş geldiniz</Text>
         <Text style={styles.subtitle}>Bilgilerinizi tamamlayın</Text>
 
         <Text style={styles.label}>Adınız Soyadınız</Text>

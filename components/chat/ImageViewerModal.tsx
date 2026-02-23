@@ -72,7 +72,7 @@ export default function ImageViewerModal({
         return;
       }
 
-      const tempPath = `${FileSystem.cacheDirectory}nackliye-${Date.now()}.jpg`;
+      const tempPath = `${FileSystem.cacheDirectory}yukustu-${Date.now()}.jpg`;
       const { uri } = await FileSystem.downloadAsync(activeUri, tempPath);
       await MediaLibrary.saveToLibraryAsync(uri);
 
