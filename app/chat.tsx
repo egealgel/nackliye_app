@@ -34,7 +34,7 @@ type Message = {
   receiver_id: string;
   content: string;
   media_url: string | null;
-  message_type: 'text' | 'image' | 'document';
+  message_type: 'text' | 'image' | 'document' | 'system';
   read_at: string | null;
   created_at: string;
 };
@@ -379,6 +379,15 @@ export default function ChatScreen() {
     }
 
     const m = item.message;
+
+    if (m.message_type === 'system') {
+      return (
+        <View style={styles.systemRow}>
+          <Text style={styles.systemText}>{m.content}</Text>
+        </View>
+      );
+    }
+
     const isMe = m.sender_id === currentUserId;
     const isDocument = m.message_type === 'document';
 
@@ -701,6 +710,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     fontWeight: '600',
+  },
+  systemRow: {
+    alignItems: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 24,
+  },
+  systemText: {
+    fontSize: 13,
+    color: '#6B7280',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    textAlign: 'center',
+    overflow: 'hidden',
+    lineHeight: 18,
   },
   bubbleWrap: {
     alignSelf: 'flex-start',
