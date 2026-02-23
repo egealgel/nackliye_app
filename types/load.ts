@@ -116,6 +116,8 @@ export type MessageSender = {
   name: string;
   phone: string;
   vehicleType: string | null;
+  ratingAvg?: number | null;
+  city?: string;
   /** User sent at least one regular message (text/image/document/system) for this load */
   hasMessage: boolean;
   /** User tapped Ara (call) at least once for this load */

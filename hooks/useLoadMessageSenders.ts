@@ -68,7 +68,7 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, phone, vehicle_type')
+      .select('id, name, phone, vehicle_type, rating_avg, city')
       .in('id', uniqueSenderIds);
 
     const result: MessageSender[] = (profiles || []).map((p) => ({
@@ -77,6 +77,8 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
       name: p.name || 'Bilinmiyor',
       phone: p.phone || '',
       vehicleType: p.vehicle_type || null,
+      ratingAvg: p.rating_avg ?? null,
+      city: p.city ?? undefined,
       hasMessage: hasMessageBySender.get(p.id) ?? false,
       hasCallAttempt: hasCallAttemptBySender.get(p.id) ?? false,
     }));

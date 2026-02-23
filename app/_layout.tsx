@@ -28,6 +28,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="chat" />
         <Stack.Screen name="edit-load" />
+        <Stack.Screen name="my-load-detail" />
       </Stack>
       <StatusBar style="dark" />
       </UnreadCountProvider>

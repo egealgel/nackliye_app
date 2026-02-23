@@ -7,17 +7,13 @@ import {
   Image,
   ScrollView,
   Alert,
-  ActivityIndicator,
   Linking,
-  Modal,
-  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/lib/auth';
-import { useLoadMessageSenders } from '@/hooks/useLoadMessageSenders';
 import { useLoadReview } from '@/hooks/useLoadReview';
 import ReviewModal from '@/components/reviews/ReviewModal';
 import ImageViewerModal from '@/components/chat/ImageViewerModal';
@@ -51,7 +47,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
   const router = useRouter();
   const { refreshProfile } = useAuth();
   const [expanded, setExpanded] = useState(false);
-  const [assigning, setAssigning] = useState<string | null>(null);
 
   const isOwner = currentUserId === load.user_id;
   const isAssigned = load.status === 'assigned';
@@ -68,67 +63,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
   );
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [fullScreenPhotoIndex, setFullScreenPhotoIndex] = useState<number | null>(null);
-  const { senders, refresh } = useLoadMessageSenders(
-    expanded && isOwner ? load.id : null,
-    isOwner ? load.user_id : null,
-  );
-
-  const [showAssignModal, setShowAssignModal] = useState(false);
-
-  const handleAssign = (driverId: string, driverName: string) => {
-    Alert.alert(
-      'İş Ver',
-      `Bu işi ${driverName} adlı kullanıcıya vermek istediğinize emin misiniz?`,
-      [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Onayla', style: 'default', onPress: () => doAssign(driverId) },
-      ],
-    );
-  };
-
-  const doAssign = async (driverId: string) => {
-    setAssigning(driverId);
-    try {
-      const { error } = await supabase
-        .from('loads')
-        .update({
-          status: 'assigned',
-          assigned_to: driverId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', load.id);
-
-      if (error) throw error;
-
-      await supabase.from('messages').insert({
-        sender_id: currentUserId,
-        receiver_id: driverId,
-        load_id: load.id,
-        content: '✅ Bu iş size verildi.',
-        message_type: 'system',
-      });
-
-      const bodyText = `${load.from_city}${load.from_district ? '/' + load.from_district : ''} → ${load.to_city}${load.to_district ? '/' + load.to_district : ''}`;
-      try {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            user_id: driverId,
-            title: 'Yeni bir iş aldınız!',
-            body: bodyText,
-            data: { type: 'load', loadId: load.id },
-          },
-        });
-      } catch {
-        // silent fail for push
-      }
-
-      setShowAssignModal(false);
-    } catch (err: any) {
-      Alert.alert('Hata', err.message || 'Bir hata oluştu.');
-    } finally {
-      setAssigning(null);
-    }
-  };
 
   const openChat = (
     otherUserId: string,
@@ -409,33 +343,7 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
             </ScrollView>
           )}
 
-          {/* --- Owner: prominent İş Ver button for active/has_offers --- */}
-          {isOwner &&
-            ['active', 'has_offers'].includes(load.status) && (
-              <>
-                <View style={styles.divider} />
-                <TouchableOpacity
-                  style={styles.bigAssignBtn}
-                  onPress={() => {
-                    refresh();
-                    setShowAssignModal(true);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="person-add" size={22} color="#FFFFFF" />
-                  <Text style={styles.bigAssignBtnText}>İş Ver</Text>
-                  {senders.length > 0 && (
-                    <View style={styles.bigAssignBadge}>
-                      <Text style={styles.bigAssignBadgeText}>
-                        {senders.length}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </>
-            )}
-
-          {/* --- Owner: İş Verildi badge when assigned --- */}
+          {/* --- Owner: İş Verildi badge when assigned (assign from İşlerim > Paylaştığım İşler) --- */}
           {isOwner && isAssigned && load.assignedDriverName && (
             <>
               <View style={styles.divider} />
@@ -447,70 +355,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
               </View>
             </>
           )}
-
-          {/* --- Owner: list of message senders and callers with İş Ver --- */}
-          {isOwner &&
-            ['active', 'has_offers'].includes(load.status) &&
-            senders.length > 0 && (
-              <>
-                <View style={styles.divider} />
-                <Text style={styles.sectionTitle}>İletişim kuranlar</Text>
-                {senders.map((s) => (
-                  <View key={s.id} style={styles.senderRow}>
-                    <View style={styles.senderInfo}>
-                      <View style={styles.senderNameRow}>
-                        <Text style={styles.senderName}>{s.name}</Text>
-                        <View style={styles.senderIcons}>
-                          {s.hasMessage && (
-                            <Ionicons name="chatbubble" size={14} color="#6B7280" style={styles.senderIcon} />
-                          )}
-                          {s.hasCallAttempt && (
-                            <Ionicons name="call" size={14} color="#6B7280" style={styles.senderIcon} />
-                          )}
-                        </View>
-                      </View>
-                      {s.vehicleType && (
-                        <Text style={styles.senderVehicle}>
-                          {VEHICLE_LABELS[
-                            s.vehicleType as keyof typeof VEHICLE_LABELS
-                          ] || s.vehicleType}
-                        </Text>
-                      )}
-                    </View>
-                    <View style={styles.senderActions}>
-                      <TouchableOpacity
-                        style={styles.msgBtn}
-                        onPress={() => openChat(s.userId, s.name, s.phone)}
-                      >
-                        <Ionicons
-                          name="chatbubble-outline"
-                          size={18}
-                          color="#FFFFFF"
-                        />
-                        <Text style={styles.msgBtnText}>Mesaj</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.callBtn}
-                        onPress={() => openCall(s.phone)}
-                      >
-                        <Ionicons name="call" size={18} color="#FFFFFF" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.assignBtn}
-                        onPress={() => handleAssign(s.userId, s.name)}
-                        disabled={assigning !== null}
-                      >
-                        {assigning === s.userId ? (
-                          <ActivityIndicator size="small" color="#FFFFFF" />
-                        ) : (
-                          <Text style={styles.assignBtnText}>İş Ver</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </>
-            )}
 
           {/* --- Non-owner: Mesaj Gönder + Ara buttons --- */}
           {!isAssigned && !isOwner && (
@@ -536,15 +380,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
               </TouchableOpacity>
             </View>
           )}
-
-          {/* --- Owner with no message senders or callers yet --- */}
-          {isOwner &&
-            ['active', 'has_offers'].includes(load.status) &&
-            senders.length === 0 && (
-              <Text style={styles.emptySenders}>
-                Henüz mesaj veya arama yok. Sürücüler size mesaj gönderdiğinde veya Ara'ya tıkladığında burada listelenecek.
-              </Text>
-            )}
 
           {/* --- Assigned, in_transit, delivered: Mesaj + Ara (owner→driver, driver→owner) --- */}
           {hasCounterparty && (
@@ -618,88 +453,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
         initialIndex={fullScreenPhotoIndex ?? 0}
         onClose={() => setFullScreenPhotoIndex(null)}
       />
-
-      {/* --- İş Ver bottom sheet modal --- */}
-      <Modal
-        visible={showAssignModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAssignModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowAssignModal(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
-              Kime iş vermek istiyorsunuz?
-            </Text>
-
-            {senders.length === 0 ? (
-              <View style={styles.modalEmpty}>
-                <Ionicons
-                  name="chatbubbles-outline"
-                  size={48}
-                  color="#D1D5DB"
-                />
-                <Text style={styles.modalEmptyText}>
-                  Henüz bu yük için mesaj gönderen veya arayan yok. Yükünüzle ilgilenen kişiler burada listelenecek.
-                </Text>
-              </View>
-            ) : (
-              <FlatList
-                data={senders}
-                keyExtractor={(item) => item.id}
-                style={styles.modalList}
-                renderItem={({ item: s }) => (
-                  <View style={styles.modalSenderRow}>
-                    <View style={styles.modalSenderInfo}>
-                      <View style={styles.modalSenderNameRow}>
-                        <Text style={styles.modalSenderName}>{s.name}</Text>
-                        <View style={styles.modalSenderIcons}>
-                          {s.hasMessage && (
-                            <Ionicons name="chatbubble" size={14} color="#6B7280" style={styles.senderIcon} />
-                          )}
-                          {s.hasCallAttempt && (
-                            <Ionicons name="call" size={14} color="#6B7280" style={styles.senderIcon} />
-                          )}
-                        </View>
-                      </View>
-                      {s.vehicleType && (
-                        <Text style={styles.modalSenderVehicle}>
-                          {VEHICLE_LABELS[
-                            s.vehicleType as keyof typeof VEHICLE_LABELS
-                          ] || s.vehicleType}
-                        </Text>
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      style={styles.modalAssignBtn}
-                      onPress={() => handleAssign(s.userId, s.name)}
-                      disabled={assigning !== null}
-                    >
-                      {assigning === s.userId ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.modalAssignBtnText}>İş Ver</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              />
-            )}
-
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setShowAssignModal(false)}
-            >
-              <Text style={styles.modalCloseBtnText}>Kapat</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </TouchableOpacity>
   );
 }

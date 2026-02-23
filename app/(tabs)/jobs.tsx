@@ -17,6 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
+import { useLoadContactCounts } from '@/hooks/useLoadContactCounts';
 import {
   LoadWithDetails,
   ProfileSnippet,
@@ -207,15 +208,18 @@ function useLoadsByField(
 function PostedLoadCard({
   load,
   onRemove,
+  contactCount,
 }: {
   load: LoadWithDetails;
   onRemove: (loadId: string) => void;
+  contactCount?: number;
 }) {
   const router = useRouter();
   const isDelivered = load.status === 'delivered';
   const isAssigned =
     load.status === 'assigned' || load.status === 'in_transit';
   const canModify = ['active', 'has_offers'].includes(load.status);
+  const canOpenDetail = ['active', 'has_offers'].includes(load.status);
   const badge = getStatusBadge(load.status);
 
   const handleEdit = () => {
@@ -255,8 +259,12 @@ function PostedLoadCard({
     );
   };
 
-  return (
-    <View style={[styles.card, isDelivered && styles.cardDimmed]}>
+  const openDetail = () => {
+    if (canOpenDetail) router.push({ pathname: '/my-load-detail', params: { loadId: load.id } });
+  };
+
+  const cardContent = (
+    <>
       <View style={styles.cardTopRow}>
         <View style={{ flex: 1 }}>
           <View style={styles.routeRow}>
@@ -302,6 +310,13 @@ function PostedLoadCard({
             {badge.label}
           </Text>
         </View>
+        {canOpenDetail && (contactCount ?? 0) > 0 && (
+          <View style={styles.contactBadge}>
+            <Text style={styles.contactBadgeText}>
+              {contactCount} kişi ilgilendi
+            </Text>
+          </View>
+        )}
         <View style={styles.metaRight}>
           <MaterialCommunityIcons
             name="package-variant"
@@ -338,8 +353,21 @@ function PostedLoadCard({
           <Text style={styles.waitingText}>Teslim bekleniyor...</Text>
         </View>
       ) : null}
-    </View>
+    </>
   );
+
+  if (canOpenDetail) {
+    return (
+      <TouchableOpacity
+        style={[styles.card, isDelivered && styles.cardDimmed]}
+        onPress={openDetail}
+        activeOpacity={0.8}
+      >
+        {cardContent}
+      </TouchableOpacity>
+    );
+  }
+  return <View style={[styles.card, isDelivered && styles.cardDimmed]}>{cardContent}</View>;
 }
 
 // ────────────────────────────────────────────────────────
@@ -601,6 +629,11 @@ export default function JobsScreen() {
   const current = activeTab === 'posted' ? posted : taken;
   const sections = buildSections(current.loads);
 
+  const activePostedLoadIds = posted.loads
+    .filter((l) => ['active', 'has_offers'].includes(l.status))
+    .map((l) => l.id);
+  const contactCounts = useLoadContactCounts(activePostedLoadIds, currentUserId);
+
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -637,7 +670,13 @@ export default function JobsScreen() {
   const renderItem = useCallback(
     ({ item }: { item: LoadWithDetails }) => {
       if (activeTab === 'posted') {
-        return <PostedLoadCard load={item} onRemove={posted.removeLoad} />;
+        return (
+          <PostedLoadCard
+            load={item}
+            onRemove={posted.removeLoad}
+            contactCount={contactCounts[item.id]}
+          />
+        );
       }
       return (
         <TakenLoadCard
@@ -647,7 +686,7 @@ export default function JobsScreen() {
         />
       );
     },
-    [activeTab, currentUserId, posted.removeLoad, taken.refresh],
+    [activeTab, currentUserId, posted.removeLoad, taken.refresh, contactCounts],
   );
 
   const postedCount = posted.loads.length;
@@ -889,6 +928,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginLeft: 4,
+  },
+  contactBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  contactBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0284C7',
   },
 
   driverRow: {
