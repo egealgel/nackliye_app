@@ -13,6 +13,38 @@ export type RoomFilters = {
   statusFilter: StatusFilter;
 };
 
+/** 12 hours in ms for Odalar "fresh" vs "stale" active split */
+const FRESH_ACTIVE_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Sort key for Odalar (Rooms): 0 = fresh active, 1 = stale active, 2 = assigned/in_transit, 3 = delivered.
+ * Fresh = active/has_offers and created_at within last 12 hours.
+ */
+function roomSortKey(item: { status: string; created_at: string }): number {
+  const created = new Date(item.created_at).getTime();
+  const now = Date.now();
+  const isActive = item.status === 'active' || item.status === 'has_offers';
+
+  if (isActive) {
+    return now - created < FRESH_ACTIVE_MS ? 0 : 1; // 0 fresh, 1 stale
+  }
+  if (item.status === 'assigned' || item.status === 'in_transit') return 2;
+  if (item.status === 'delivered') return 3;
+  return 4;
+}
+
+/** Sort room loads: fresh active → stale active → assigned → delivered; within each group by created_at desc */
+function sortRoomLoads<T extends { status: string; created_at: string }>(
+  items: T[]
+): T[] {
+  return [...items].sort((a, b) => {
+    const ka = roomSortKey(a);
+    const kb = roomSortKey(b);
+    if (ka !== kb) return ka - kb;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+}
+
 function statusPriority(status: string): number {
   if (status === 'active' || status === 'has_offers') return 1;
   if (status === 'assigned' || status === 'in_transit') return 2;
@@ -168,7 +200,7 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
         : undefined,
     }));
 
-    const sortedResult = sortLoadsByStatus(mapped);
+    const sortedResult = sortRoomLoads(mapped);
 
     if (isMounted.current) {
       setLoads(sortedResult);
