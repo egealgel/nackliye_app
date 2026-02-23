@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import RoomLoadCard from '@/components/rooms/RoomLoadCard';
 
 const PRIMARY = '#FF6B35';
 
+const VALID_ROOMS: VehicleType[] = ['minivan', 'kamyonet', 'kamyon', 'tir', 'damperli'];
+
 const DEFAULT_FILTERS: RoomFilters = {
   fromCity: null,
   fromDistrict: null,
@@ -28,8 +30,16 @@ const DEFAULT_FILTERS: RoomFilters = {
 };
 
 export default function RoomsScreen() {
-  const { profile, session } = useAuth();
-  const [selectedRoom, setSelectedRoom] = useState<VehicleType>('kamyonet');
+  const { profile, session, refreshProfile } = useAuth();
+  const [selectedRoom, setSelectedRoom] = useState<VehicleType>('minivan');
+  const userPickedRoom = useRef(false);
+  const lastAppliedVehicle = useRef<string | null>(null);
+
+  const handleRoomSelect = useCallback((room: VehicleType) => {
+    userPickedRoom.current = true;
+    setSelectedRoom(room);
+  }, []);
+
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
   const { loads, isLoading, refresh, removeLoad } = useRoomLoads(selectedRoom, filters);
   const { counts, refresh: refreshCounts } = useRoomCounts();
@@ -37,8 +47,21 @@ export default function RoomsScreen() {
   useFocusEffect(
     useCallback(() => {
       refreshCounts();
-    }, [refreshCounts]),
+      refreshProfile().then(() => {});
+    }, [refreshCounts, refreshProfile]),
   );
+
+  useEffect(() => {
+    const vt = profile?.vehicle_type;
+    if (!vt) return;
+    if (vt === lastAppliedVehicle.current) return;
+    const mapped = vt as VehicleType;
+    if (VALID_ROOMS.includes(mapped)) {
+      setSelectedRoom(mapped);
+      userPickedRoom.current = false;
+    }
+    lastAppliedVehicle.current = vt;
+  }, [profile?.vehicle_type]);
   const [refreshing, setRefreshing] = useState(false);
 
   const currentUserId = session?.user?.id || '';
@@ -69,7 +92,7 @@ export default function RoomsScreen() {
 
       <RoomTabs
         selected={selectedRoom}
-        onSelect={setSelectedRoom}
+        onSelect={handleRoomSelect}
         counts={counts}
       />
 
