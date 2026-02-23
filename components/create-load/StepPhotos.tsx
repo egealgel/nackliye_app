@@ -27,16 +27,23 @@ type Props = {
   onSkip: () => void;
 };
 
-async function compressAndUploadPhoto(uri: string, userId: string): Promise<string> {
-  const manipulated = await ImageManipulator.manipulateAsync(
+const UPLOAD_MAX_RETRIES = 3;
+const UPLOAD_RETRY_DELAY_MS = 1000;
+
+async function compressPhoto(uri: string): Promise<{ uri: string }> {
+  return ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: 1200 } }],
     { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
   );
+}
 
-  const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-
-  const response = await fetch(manipulated.uri);
+async function uploadToStorage(
+  manipulatedUri: string,
+  userId: string,
+  fileName: string,
+): Promise<string> {
+  const response = await fetch(manipulatedUri);
   const blob = await response.blob();
   const arrayBuffer = await new Response(blob).arrayBuffer();
 
@@ -53,6 +60,27 @@ async function compressAndUploadPhoto(uri: string, userId: string): Promise<stri
     .getPublicUrl(data.path);
 
   return urlData.publicUrl;
+}
+
+async function compressAndUploadPhotoWithRetry(
+  uri: string,
+  userId: string,
+): Promise<string> {
+  const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= UPLOAD_MAX_RETRIES; attempt++) {
+    try {
+      const manipulated = await compressPhoto(uri);
+      return await uploadToStorage(manipulated.uri, userId, fileName);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < UPLOAD_MAX_RETRIES) {
+        await new Promise((r) => setTimeout(r, UPLOAD_RETRY_DELAY_MS));
+      }
+    }
+  }
+  throw lastError ?? new Error('Upload failed');
 }
 
 export default function StepPhotos({
@@ -77,26 +105,32 @@ export default function StepPhotos({
     }));
     onPhotosChange([...photos, ...newItems].slice(0, 5));
 
+    let failedCount = 0;
     for (let i = 0; i < newItems.length; i++) {
       const uri = newItems[i].uri;
-      const insertIndex = photos.length + i;
       try {
-        const url = await compressAndUploadPhoto(uri, userId);
+        const url = await compressAndUploadPhotoWithRetry(uri, userId);
         onPhotosChange((prev) => {
           const next = [...prev];
           const idx = next.findIndex((p) => p.uri === uri);
           if (idx >= 0) next[idx] = { uri, status: 'done', url };
           return next;
         });
-      } catch (err: any) {
+      } catch {
+        failedCount++;
         onPhotosChange((prev) => {
           const next = [...prev];
           const idx = next.findIndex((p) => p.uri === uri);
           if (idx >= 0) next[idx] = { uri, status: 'error' };
           return next;
         });
-        Alert.alert('Yükleme hatası', err.message || 'Fotoğraf yüklenemedi.');
       }
+    }
+    if (failedCount > 0) {
+      Alert.alert(
+        'Yükleme hatası',
+        `${failedCount} fotoğraf yüklenemedi, tekrar deneyin`,
+      );
     }
   };
 
@@ -200,7 +234,16 @@ export default function StepPhotos({
               {photo.status === 'uploading' && (
                 <View style={styles.overlay}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.overlayText}>Yükleniyor...</Text>
+                  <Text style={styles.overlayText}>
+                    Yükleniyor... ({photos.filter((p) => p.status === 'done').length + 1}/{photos.length})
+                  </Text>
+                </View>
+              )}
+              {photo.status === 'error' && (
+                <View style={styles.overlay}>
+                  <Ionicons name="alert-circle" size={24} color="#FEE2E2" />
+                  <Text style={styles.overlayText}>Yüklenemedi</Text>
+                  <Text style={styles.overlaySubtext}>Tekrar deneyin veya kaldırın</Text>
                 </View>
               )}
               {photo.status === 'done' && (
@@ -222,7 +265,10 @@ export default function StepPhotos({
       )}
 
       <Text style={styles.countText}>
-        {photos.length}/5 fotoğraf{hasUploading ? ' yükleniyor...' : ' eklendi'}
+        {photos.length}/5 fotoğraf
+        {hasUploading
+          ? ` yükleniyor... (${photos.filter((p) => p.status === 'done').length + 1}/${photos.length})`
+          : ' eklendi'}
       </Text>
 
       {photos.length > 0 ? (
@@ -349,6 +395,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  overlaySubtext: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 10,
+    marginTop: 2,
   },
   checkOverlay: {
     position: 'absolute',
