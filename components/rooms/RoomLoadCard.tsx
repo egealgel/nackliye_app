@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/auth';
 import { useLoadMessageSenders } from '@/hooks/useLoadMessageSenders';
 import { useLoadReview } from '@/hooks/useLoadReview';
 import ReviewModal from '@/components/reviews/ReviewModal';
+import ImageViewerModal from '@/components/chat/ImageViewerModal';
 import {
   LoadWithDetails,
   formatWeight,
@@ -63,6 +64,7 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
     reviewedId || null
   );
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [fullScreenPhotoIndex, setFullScreenPhotoIndex] = useState<number | null>(null);
   const { senders, refresh } = useLoadMessageSenders(
     expanded && isOwner ? load.id : null,
     isOwner ? load.user_id : null,
@@ -286,7 +288,13 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
               style={styles.photosRow}
             >
               {load.photos.map((uri, i) => (
-                <Image key={`${uri}-${i}`} source={{ uri }} style={styles.photo} />
+                <TouchableOpacity
+                  key={`${uri}-${i}`}
+                  onPress={() => setFullScreenPhotoIndex(i)}
+                  activeOpacity={0.85}
+                >
+                  <Image source={{ uri }} style={styles.photo} />
+                </TouchableOpacity>
               ))}
             </ScrollView>
           )}
@@ -430,6 +438,12 @@ export default function RoomLoadCard({ load, currentUserId }: Props) {
           )}
         </View>
       )}
+      <ImageViewerModal
+        visible={fullScreenPhotoIndex !== null}
+        images={load.photos ?? []}
+        initialIndex={fullScreenPhotoIndex ?? 0}
+        onClose={() => setFullScreenPhotoIndex(null)}
+      />
     </TouchableOpacity>
   );
 }
