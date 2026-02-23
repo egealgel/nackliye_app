@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Modal,
   SafeAreaView,
   FlatList,
@@ -105,8 +104,14 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
       : filters.fromCity
     : 'Nereden';
   const nereyeLabel = filters.toCity || 'Nereye';
-  const tarihLabel = DATE_OPTIONS.find((o) => o.value === filters.dateFilter)?.label || 'Tarih';
-  const durumLabel = STATUS_OPTIONS.find((o) => o.value === filters.statusFilter)?.label || 'Durum';
+  const tarihLabel =
+    filters.dateFilter === 'all'
+      ? 'Tarih'
+      : DATE_OPTIONS.find((o) => o.value === filters.dateFilter)?.label ?? 'Tarih';
+  const durumLabel =
+    filters.statusFilter === 'active'
+      ? 'Durum'
+      : STATUS_OPTIONS.find((o) => o.value === filters.statusFilter)?.label ?? 'Durum';
 
   const Chip = ({
     label,
@@ -144,11 +149,7 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-      >
+      <View style={styles.chipsRow}>
         <Chip
           label={neredenLabel}
           selected={!!filters.fromCity}
@@ -190,7 +191,7 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
               : undefined
           }
         />
-      </ScrollView>
+      </View>
 
       {hasAnyFilter && (
         <TouchableOpacity style={styles.clearBtn} onPress={clearFilters} activeOpacity={0.7}>
@@ -407,20 +408,22 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     alignItems: 'center',
   },
   chip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
     borderRadius: 20,
     backgroundColor: '#E5E7EB',
-    gap: 6,
+    gap: 4,
   },
   chipSelected: {
-    backgroundColor: PRIMARY,
+    backgroundColor: '#2563EB',
   },
   chipText: {
     fontSize: 14,
