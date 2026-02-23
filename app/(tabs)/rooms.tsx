@@ -22,9 +22,9 @@ const PRIMARY = '#2563EB';
 const VALID_ROOMS: VehicleType[] = ['minivan', 'kamyonet', 'kamyon', 'tir', 'damperli'];
 
 const DEFAULT_FILTERS: RoomFilters = {
-  fromCity: null,
-  fromDistrict: null,
-  toCity: null,
+  fromCities: [],
+  fromCityDistricts: {},
+  toCities: [],
   dateFilter: 'all',
   statusFilter: 'active',
 };

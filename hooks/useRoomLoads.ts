@@ -6,9 +6,9 @@ export type DateFilter = 'today' | '3days' | 'week' | 'all';
 export type StatusFilter = 'active' | 'assigned' | 'all';
 
 export type RoomFilters = {
-  fromCity: string | null;
-  fromDistrict: string | null;
-  toCity: string | null;
+  fromCities: string[];
+  fromCityDistricts: Record<string, string[]>; // city -> districts; empty = all districts
+  toCities: string[];
   dateFilter: DateFilter;
   statusFilter: StatusFilter;
 };
@@ -106,14 +106,11 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       .eq('vehicle_type', vehicleType)
       .in('status', statusList);
 
-    if (filters.fromCity) {
-      query = query.eq('from_city', filters.fromCity);
-      if (filters.fromDistrict) {
-        query = query.eq('from_district', filters.fromDistrict);
-      }
+    if (filters.fromCities.length > 0) {
+      query = query.in('from_city', filters.fromCities);
     }
-    if (filters.toCity) {
-      query = query.eq('to_city', filters.toCity);
+    if (filters.toCities.length > 0) {
+      query = query.in('to_city', filters.toCities);
     }
 
     if (dateGte) {
@@ -143,11 +140,8 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
           .eq('vehicle_type', vehicleType)
           .in('status', statusList)
           .gte('created_at', dateGte);
-        if (filters.fromCity) {
-          fallbackQuery = fallbackQuery.eq('from_city', filters.fromCity);
-          if (filters.fromDistrict) fallbackQuery = fallbackQuery.eq('from_district', filters.fromDistrict);
-        }
-        if (filters.toCity) fallbackQuery = fallbackQuery.eq('to_city', filters.toCity);
+        if (filters.fromCities.length > 0) fallbackQuery = fallbackQuery.in('from_city', filters.fromCities);
+        if (filters.toCities.length > 0) fallbackQuery = fallbackQuery.in('to_city', filters.toCities);
         const fb = await fallbackQuery;
         loadsData = fb.data;
         loadsErr = fb.error;
@@ -170,8 +164,21 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       return;
     }
 
+    // Filter by district in memory (when fromCityDistricts has selections)
+    let filteredByDistrict = loadsData;
+    const citiesWithDistricts = filters.fromCities.filter(
+      (c) => filters.fromCityDistricts[c] && filters.fromCityDistricts[c].length > 0
+    );
+    if (citiesWithDistricts.length > 0) {
+      filteredByDistrict = loadsData.filter((l) => {
+        const cityDists = filters.fromCityDistricts[l.from_city];
+        if (!cityDists || cityDists.length === 0) return filters.fromCities.includes(l.from_city);
+        return cityDists.includes(l.from_district ?? '');
+      });
+    }
+
     const allUserIds = new Set<string>();
-    loadsData.forEach((l) => {
+    filteredByDistrict.forEach((l) => {
       allUserIds.add(l.user_id);
       if (l.assigned_to) allUserIds.add(l.assigned_to);
     });
@@ -184,7 +191,7 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
     const profileMap = new Map<string, ProfileSnippet>();
     (profiles || []).forEach((p) => profileMap.set(p.id, p));
 
-    const mapped: LoadWithDetails[] = loadsData.map((l) => ({
+    const mapped: LoadWithDetails[] = filteredByDistrict.map((l) => ({
       ...l,
       ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
       ownerPhone: profileMap.get(l.user_id)?.phone || '',
@@ -206,7 +213,7 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       setLoads(sortedResult);
       setIsLoading(false);
     }
-  }, [vehicleType, filters.fromCity, filters.fromDistrict, filters.toCity, filters.dateFilter, filters.statusFilter]);
+  }, [vehicleType, filters.fromCities, filters.fromCityDistricts, filters.toCities, filters.dateFilter, filters.statusFilter]);
 
   useEffect(() => {
     isMounted.current = true;

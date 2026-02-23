@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   FlatList,
   TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { TURKISH_CITIES } from '@/constants/turkishCities';
@@ -36,16 +39,30 @@ type Props = {
 
 export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
   const [picker, setPicker] = useState<'nereden' | 'nereye' | 'tarih' | 'durum' | null>(null);
-  const [neredenMode, setNeredenMode] = useState<'city' | 'district'>('city');
-  const [neredenCity, setNeredenCity] = useState(filters.fromCity || '');
-  const [neredenDistrict, setNeredenDistrict] = useState(filters.fromDistrict || '');
   const [citySearch, setCitySearch] = useState('');
+  const [districtSearch, setDistrictSearch] = useState<Record<string, string>>({});
+
+  // Picker local state (applied on Tamam)
+  const [neredenCities, setNeredenCities] = useState<string[]>([]);
+  const [neredenDistricts, setNeredenDistricts] = useState<Record<string, string[]>>({});
+  const [nereyeCities, setNereyeCities] = useState<string[]>([]);
+  const [neredenExpandedCity, setNeredenExpandedCity] = useState<string | null>(null);
 
   const hasAnyFilter =
-    filters.fromCity ||
-    filters.toCity ||
+    filters.fromCities.length > 0 ||
+    filters.toCities.length > 0 ||
     filters.dateFilter !== 'all' ||
     filters.statusFilter !== 'active';
+
+  const clearFilters = () => {
+    onFiltersChange({
+      fromCities: [],
+      fromCityDistricts: {},
+      toCities: [],
+      dateFilter: 'all',
+      statusFilter: 'active',
+    });
+  };
 
   const filteredCities = useMemo(() => {
     if (!citySearch) return [...TURKISH_CITIES];
@@ -53,97 +70,115 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
     return TURKISH_CITIES.filter((c) => c.toLocaleLowerCase('tr-TR').includes(q));
   }, [citySearch]);
 
-  const filteredDistricts = useMemo(() => {
-    if (!neredenCity) return [];
-    const districts = DISTRICTS[neredenCity] || [];
-    if (!citySearch) return districts;
-    const q = citySearch.toLocaleLowerCase('tr-TR');
+  const getFilteredDistricts = (city: string) => {
+    const districts = DISTRICTS[city] || [];
+    const search = districtSearch[city] || '';
+    if (!search) return districts;
+    const q = search.toLocaleLowerCase('tr-TR');
     return districts.filter((d) => d.toLocaleLowerCase('tr-TR').includes(q));
-  }, [neredenCity, citySearch]);
+  };
 
   const openNereden = () => {
-    setNeredenCity(filters.fromCity || '');
-    setNeredenDistrict(filters.fromDistrict || '');
-    setNeredenMode(filters.fromCity ? 'district' : 'city');
+    setNeredenCities([...filters.fromCities]);
+    setNeredenDistricts(
+      filters.fromCities.reduce<Record<string, string[]>>((acc, c) => {
+        acc[c] = filters.fromCityDistricts[c] ? [...filters.fromCityDistricts[c]] : [];
+        return acc;
+      }, {})
+    );
     setCitySearch('');
+    setDistrictSearch({});
+    setNeredenExpandedCity(null);
     setPicker('nereden');
   };
 
-  const applyNereden = (city: string, district: string) => {
-    onFiltersChange({
-      ...filters,
-      fromCity: city || null,
-      fromDistrict: district || null,
-    });
-    setPicker(null);
-  };
-
   const openNereye = () => {
+    setNereyeCities([...filters.toCities]);
     setCitySearch('');
     setPicker('nereye');
   };
 
-  const applyNereye = (city: string) => {
-    onFiltersChange({ ...filters, toCity: city || null });
-    setPicker(null);
+  const toggleNeredenCity = (city: string) => {
+    setNeredenCities((prev) =>
+      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
+    );
+    if (!neredenCities.includes(city)) {
+      setNeredenDistricts((prev) => ({ ...prev, [city]: [] }));
+    } else {
+      setNeredenDistricts((prev) => {
+        const next = { ...prev };
+        delete next[city];
+        return next;
+      });
+    }
   };
 
-  const clearFilters = () => {
-    onFiltersChange({
-      fromCity: null,
-      fromDistrict: null,
-      toCity: null,
-      dateFilter: 'all',
-      statusFilter: 'active',
+  const toggleNereyeCity = (city: string) => {
+    setNereyeCities((prev) =>
+      prev.includes(city) ? prev.filter((c) => c !== city) : [...prev, city]
+    );
+  };
+
+  const toggleNeredenDistrict = (city: string, district: string) => {
+    setNeredenDistricts((prev) => {
+      const list = prev[city] || [];
+      const next = [...list];
+      const i = next.indexOf(district);
+      if (i >= 0) next.splice(i, 1);
+      else next.push(district);
+      return { ...prev, [city]: next };
     });
   };
 
-  const neredenLabel = filters.fromCity
-    ? filters.fromDistrict
-      ? `${filters.fromCity}/${filters.fromDistrict}`
-      : filters.fromCity
-    : 'Nereden';
-  const nereyeLabel = filters.toCity || 'Nereye';
-  const tarihLabel =
-    filters.dateFilter === 'all'
-      ? 'Tarih'
-      : DATE_OPTIONS.find((o) => o.value === filters.dateFilter)?.label ?? 'Tarih';
-  const durumLabel =
-    filters.statusFilter === 'active'
-      ? 'Durum'
-      : STATUS_OPTIONS.find((o) => o.value === filters.statusFilter)?.label ?? 'Durum';
+  const clearNeredenPicker = () => {
+    setNeredenCities([]);
+    setNeredenDistricts({});
+    setDistrictSearch({});
+  };
+
+  const clearNereyePicker = () => {
+    setNereyeCities([]);
+  };
+
+  const applyNereden = () => {
+    onFiltersChange({
+      ...filters,
+      fromCities: [...neredenCities],
+      fromCityDistricts: { ...neredenDistricts },
+    });
+    setPicker(null);
+  };
+
+  const applyNereye = () => {
+    onFiltersChange({
+      ...filters,
+      toCities: [...nereyeCities],
+    });
+    setPicker(null);
+  };
+
 
   const Chip = ({
     label,
     selected,
     onPress,
-    onClear,
   }: {
     label: string;
     selected: boolean;
     onPress: () => void;
-    onClear?: () => void;
   }) => (
     <TouchableOpacity
       style={[styles.chip, selected && styles.chipSelected]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>
+      <Text
+        style={[styles.chipText, selected && styles.chipTextSelected]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
         {label}
       </Text>
-      {selected && onClear && (
-        <TouchableOpacity
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          onPress={(e) => {
-            e.stopPropagation();
-            onClear();
-          }}
-          style={styles.chipClear}
-        >
-          <Ionicons name="close" size={14} color="#FFFFFF" />
-        </TouchableOpacity>
-      )}
     </TouchableOpacity>
   );
 
@@ -151,144 +186,182 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
     <View style={styles.container}>
       <View style={styles.chipsRow}>
         <Chip
-          label={neredenLabel}
-          selected={!!filters.fromCity}
+          label="Nereden"
+          selected={filters.fromCities.length > 0}
           onPress={openNereden}
-          onClear={
-            filters.fromCity
-              ? () =>
-                  onFiltersChange({
-                    ...filters,
-                    fromCity: null,
-                    fromDistrict: null,
-                  })
-              : undefined
-          }
         />
         <Chip
-          label={nereyeLabel}
-          selected={!!filters.toCity}
+          label="Nereye"
+          selected={filters.toCities.length > 0}
           onPress={openNereye}
-          onClear={filters.toCity ? () => onFiltersChange({ ...filters, toCity: null }) : undefined}
         />
         <Chip
-          label={tarihLabel}
+          label="Tarih"
           selected={filters.dateFilter !== 'all'}
           onPress={() => setPicker('tarih')}
-          onClear={
-            filters.dateFilter !== 'all'
-              ? () => onFiltersChange({ ...filters, dateFilter: 'all' })
-              : undefined
-          }
         />
         <Chip
-          label={durumLabel}
+          label="Durum"
           selected={filters.statusFilter !== 'active'}
           onPress={() => setPicker('durum')}
-          onClear={
-            filters.statusFilter !== 'active'
-              ? () => onFiltersChange({ ...filters, statusFilter: 'active' })
-              : undefined
-          }
         />
       </View>
 
       {hasAnyFilter && (
-        <TouchableOpacity style={styles.clearBtn} onPress={clearFilters} activeOpacity={0.7}>
-          <Ionicons name="close-circle-outline" size={16} color="#666" />
-          <Text style={styles.clearBtnText}>Filtreleri Temizle</Text>
+        <TouchableOpacity
+          style={styles.clearFiltersBtn}
+          onPress={clearFilters}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.clearFiltersText}>Filtreleri Temizle</Text>
         </TouchableOpacity>
       )}
 
-      {/* Nereden picker: city + optional district */}
+      {/* Nereden picker: multi-select cities + optional districts */}
       <Modal visible={picker === 'nereden'} animationType="slide">
         <SafeAreaView style={styles.modal}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nereden</Text>
-            <TouchableOpacity onPress={() => setPicker(null)}>
-              <Text style={styles.modalClose}>Kapat</Text>
-            </TouchableOpacity>
-          </View>
-          {neredenMode === 'city' ? (
-            <>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="İl ara..."
-                placeholderTextColor="#999"
-                value={citySearch}
-                onChangeText={setCitySearch}
-                autoFocus
-              />
-              <FlatList
-                data={filteredCities}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.listItem}
-                    onPress={() => {
-                      setNeredenCity(item);
-                      setCitySearch('');
-                      const districts = DISTRICTS[item];
-                      if (districts && districts.length > 0) {
-                        setNeredenMode('district');
-                      } else {
-                        applyNereden(item, '');
-                      }
-                    }}
-                  >
-                    <Text style={styles.listItemText}>{item}</Text>
-                    <Ionicons name="chevron-forward" size={18} color="#CCC" />
-                  </TouchableOpacity>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-              />
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={styles.backToCity}
-                onPress={() => {
-                  setNeredenMode('city');
-                  setCitySearch('');
-                }}
-              >
-                <Ionicons name="chevron-back" size={18} color={PRIMARY} />
-                <Text style={styles.backToCityText}>{neredenCity}</Text>
-                <Text style={styles.changeText}>Değiştir</Text>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalKeyboard}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Nereden</Text>
+              <TouchableOpacity onPress={() => setPicker(null)}>
+                <Text style={styles.modalClose}>Kapat</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.skipDistrict}
-                onPress={() => applyNereden(neredenCity, '')}
-              >
-                <Text style={styles.skipDistrictText}>Tüm il (ilçe seçme)</Text>
-              </TouchableOpacity>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="İlçe ara..."
-                placeholderTextColor="#999"
-                value={citySearch}
-                onChangeText={setCitySearch}
-              />
-              <FlatList
-                data={filteredDistricts}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.listItem}
-                    onPress={() => applyNereden(neredenCity, item)}
+            </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="İl ara..."
+              placeholderTextColor="#999"
+              value={citySearch}
+              onChangeText={setCitySearch}
+              autoFocus
+            />
+            <FlatList
+              data={filteredCities}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.listItem, neredenCities.includes(item) && styles.listItemSelected]}
+                  onPress={() => toggleNeredenCity(item)}
+                >
+                  <Text
+                    style={[
+                      styles.listItemText,
+                      neredenCities.includes(item) && styles.listItemSelectedText,
+                    ]}
                   >
-                    <Text style={styles.listItemText}>{item}</Text>
-                    <Ionicons name="checkmark" size={20} color={PRIMARY} />
-                  </TouchableOpacity>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.separator} />}
-              />
-            </>
-          )}
+                    {item}
+                  </Text>
+                  {neredenCities.includes(item) && (
+                    <Ionicons name="checkmark-circle" size={24} color={PRIMARY} />
+                  )}
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              ListFooterComponent={
+                neredenCities.length > 0 ? (
+                  <View style={styles.districtsSection}>
+                    <Text style={styles.districtsSectionTitle}>İlçe Seç (Opsiyonel)</Text>
+                    {neredenCities.map((city) => {
+                      const dists = DISTRICTS[city];
+                      if (!dists || dists.length === 0) return null;
+                      const isExpanded = neredenExpandedCity === city;
+                      const selectedDists = neredenDistricts[city] || [];
+                      return (
+                        <View key={city} style={styles.cityDistrictBlock}>
+                          <TouchableOpacity
+                            style={styles.cityDistrictHeader}
+                            onPress={() =>
+                              setNeredenExpandedCity(isExpanded ? null : city)
+                            }
+                          >
+                            <Text style={styles.cityDistrictHeaderText}>
+                              {city}
+                              {selectedDists.length > 0 && ` (${selectedDists.length})`}
+                            </Text>
+                            <Ionicons
+                              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                              size={20}
+                              color="#666"
+                            />
+                          </TouchableOpacity>
+                          {isExpanded && (
+                            <View style={styles.districtList}>
+                              <TextInput
+                                style={styles.districtSearch}
+                                placeholder={`${city} ilçe ara...`}
+                                placeholderTextColor="#999"
+                                value={districtSearch[city] || ''}
+                                onChangeText={(t) =>
+                                  setDistrictSearch((prev) => ({ ...prev, [city]: t }))
+                                }
+                              />
+                              <ScrollView
+                                style={styles.districtScroll}
+                                nestedScrollEnabled
+                                showsVerticalScrollIndicator
+                              >
+                                {getFilteredDistricts(city).map((d) => {
+                                const checked = selectedDists.includes(d);
+                                return (
+                                  <TouchableOpacity
+                                    key={d}
+                                    style={[
+                                      styles.districtItem,
+                                      checked && styles.districtItemSelected,
+                                    ]}
+                                    onPress={() => toggleNeredenDistrict(city, d)}
+                                  >
+                                    <Text
+                                      style={[
+                                        styles.districtItemText,
+                                        checked && styles.districtItemTextSelected,
+                                      ]}
+                                    >
+                                      {d}
+                                    </Text>
+                                    {checked && (
+                                      <Ionicons name="checkmark" size={20} color={PRIMARY} />
+                                    )}
+                                  </TouchableOpacity>
+                                );
+                              })}
+                              </ScrollView>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : null
+              }
+            />
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.temizleBtn}
+                onPress={clearNeredenPicker}
+                disabled={neredenCities.length === 0}
+              >
+                <Text
+                  style={[
+                    styles.temizleBtnText,
+                    neredenCities.length === 0 && styles.temizleBtnTextDisabled,
+                  ]}
+                >
+                  Tümünü Temizle
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.tamamBtn} onPress={applyNereden}>
+                <Text style={styles.tamamBtnText}>Tamam</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </SafeAreaView>
       </Modal>
 
-      {/* Nereye picker: city only */}
+      {/* Nereye picker: multi-select cities only */}
       <Modal visible={picker === 'nereye'} animationType="slide">
         <SafeAreaView style={styles.modal}>
           <View style={styles.modalHeader}>
@@ -310,19 +383,43 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
             keyExtractor={(item) => item}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[styles.listItem, item === filters.toCity && styles.listItemSelected]}
-                onPress={() => applyNereye(item)}
+                style={[styles.listItem, nereyeCities.includes(item) && styles.listItemSelected]}
+                onPress={() => toggleNereyeCity(item)}
               >
                 <Text
-                  style={[styles.listItemText, item === filters.toCity && styles.listItemSelectedText]}
+                  style={[
+                    styles.listItemText,
+                    nereyeCities.includes(item) && styles.listItemSelectedText,
+                  ]}
                 >
                   {item}
                 </Text>
-                {item === filters.toCity && <Ionicons name="checkmark" size={22} color={PRIMARY} />}
+                {nereyeCities.includes(item) && (
+                  <Ionicons name="checkmark-circle" size={24} color={PRIMARY} />
+                )}
               </TouchableOpacity>
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
           />
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.temizleBtn}
+              onPress={clearNereyePicker}
+              disabled={nereyeCities.length === 0}
+            >
+              <Text
+                style={[
+                  styles.temizleBtnText,
+                  nereyeCities.length === 0 && styles.temizleBtnTextDisabled,
+                ]}
+              >
+                Tümünü Temizle
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.tamamBtn} onPress={applyNereye}>
+              <Text style={styles.tamamBtnText}>Tamam</Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </Modal>
 
@@ -417,39 +514,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: 20,
     backgroundColor: '#E5E7EB',
-    gap: 4,
+    minWidth: 0,
+    overflow: 'hidden',
   },
   chipSelected: {
     backgroundColor: '#2563EB',
   },
   chipText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#374151',
   },
   chipTextSelected: {
     color: '#FFFFFF',
   },
-  chipClear: {
-    padding: 2,
+  clearFiltersBtn: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
-  clearBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    gap: 6,
-    alignSelf: 'flex-start',
-  },
-  clearBtnText: {
-    fontSize: 14,
-    color: '#666',
+  clearFiltersText: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   modal: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  modalKeyboard: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -487,7 +584,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   listItemSelected: {
-    backgroundColor: '#FFF5F0',
+    backgroundColor: '#F0F7FF',
   },
   listItemText: {
     fontSize: 18,
@@ -502,31 +599,105 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F0F0',
     marginHorizontal: 20,
   },
-  backToCity: {
+  districtsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  districtsSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  cityDistrictBlock: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  cityDistrictHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#F9FAFB',
   },
-  backToCityText: {
+  cityDistrictHeaderText: {
     fontSize: 16,
     fontWeight: '600',
-    color: PRIMARY,
+    color: '#1A1A1A',
   },
-  changeText: {
+  districtList: {
+    padding: 12,
+  },
+  districtScroll: {
+    maxHeight: 200,
+  },
+  districtSearch: {
+    height: 40,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 12,
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#1A1A1A',
+    marginBottom: 10,
   },
-  skipDistrict: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    marginBottom: 8,
+  districtItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  skipDistrictText: {
-    fontSize: 16,
+  districtItemSelected: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 8,
+  },
+  districtItemText: {
+    fontSize: 15,
+    color: '#374151',
+  },
+  districtItemTextSelected: {
     color: PRIMARY,
     fontWeight: '600',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  temizleBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  temizleBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  temizleBtnTextDisabled: {
+    color: '#D1D5DB',
+  },
+  tamamBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: PRIMARY,
+    alignItems: 'center',
+  },
+  tamamBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   optionItem: {
     flexDirection: 'row',
@@ -538,7 +709,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   optionItemSelected: {
-    backgroundColor: '#FFF5F0',
+    backgroundColor: '#F0F7FF',
   },
   optionItemText: {
     fontSize: 18,
