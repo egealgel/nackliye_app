@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { UnreadCountProvider } from '@/lib/UnreadCountContext';
 import { initNotificationListeners } from '@/services/notifications';
@@ -19,10 +20,11 @@ function NotificationsInit() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <NotificationsInit />
-      <UnreadCountProvider>
-      <Stack screenOptions={{ headerShown: false }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <NotificationsInit />
+        <UnreadCountProvider>
+        <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
@@ -31,7 +33,8 @@ export default function RootLayout() {
         <Stack.Screen name="my-load-detail" />
       </Stack>
       <StatusBar style="dark" />
-      </UnreadCountProvider>
-    </AuthProvider>
+        </UnreadCountProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -107,7 +107,7 @@ function getStatusBadge(status: string) {
   switch (status) {
     case 'active':
     case 'has_offers':
-      return { label: 'Aktif', bg: '#DEF7EC', color: '#059669' };
+      return { label: 'Aktif', bg: '#E6F9E6', color: '#22C55E' };
     case 'assigned':
     case 'in_transit':
       return { label: 'İş Verildi', bg: '#FFF7ED', color: '#EA580C' };

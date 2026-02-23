@@ -240,8 +240,20 @@ export default function MyLoadDetailScreen() {
           </View>
 
           <View style={styles.metaRow}>
-            <View style={[styles.statusPill, isAssigned && styles.statusPillAssigned]}>
-              <Text style={[styles.statusPillText, isAssigned && styles.statusPillTextAssigned]}>
+            <View
+              style={[
+                styles.statusPill,
+                isAssigned && styles.statusPillAssigned,
+                !isAssigned && load.status === 'active' && styles.statusPillActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusPillText,
+                  isAssigned && styles.statusPillTextAssigned,
+                  !isAssigned && load.status === 'active' && styles.statusPillTextActive,
+                ]}
+              >
                 {isAssigned ? 'İş Verildi' : load.status === 'has_offers' ? 'Teklif Var' : 'Aktif'}
               </Text>
             </View>
@@ -400,8 +412,10 @@ const styles = StyleSheet.create({
   routeText: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1F2937' },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 },
   statusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: '#E5E7EB' },
+  statusPillActive: { backgroundColor: '#E6F9E6' },
   statusPillAssigned: { backgroundColor: '#16A34A' },
   statusPillText: { fontSize: 12, fontWeight: '700', color: '#374151' },
+  statusPillTextActive: { color: '#22C55E' },
   statusPillTextAssigned: { color: '#FFFFFF' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 13, color: '#6B7280' },

@@ -102,7 +102,7 @@ export function useConversations(currentUserId: string | undefined) {
     const profileMap = new Map((profilesRes.data || []).map((p) => [p.id, p]));
     const loadMap = new Map((loadsRes.data || []).map((l) => [l.id, l]));
 
-    const result: Conversation[] = convos.map((c) => {
+    let result: Conversation[] = convos.map((c) => {
       const p = profileMap.get(c.otherUserId);
       const l = loadMap.get(c.loadId);
       return {
@@ -116,6 +116,16 @@ export function useConversations(currentUserId: string | undefined) {
       };
     });
 
+    const { data: hiddenRows } = await supabase
+      .from('hidden_conversations')
+      .select('load_id, other_user_id')
+      .eq('user_id', currentUserId);
+
+    const hiddenSet = new Set(
+      (hiddenRows || []).map((r) => `${r.load_id}_${r.other_user_id}`)
+    );
+    result = result.filter((c) => !hiddenSet.has(`${c.loadId}_${c.otherUserId}`));
+
     result.sort(
       (a, b) =>
         new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
@@ -124,6 +134,19 @@ export function useConversations(currentUserId: string | undefined) {
     setConversations(result);
     setIsLoading(false);
   }, [currentUserId]);
+
+  const hideConversation = useCallback(
+    async (loadId: string, otherUserId: string) => {
+      if (!currentUserId) return;
+      const { error } = await supabase.from('hidden_conversations').insert({
+        user_id: currentUserId,
+        load_id: loadId,
+        other_user_id: otherUserId,
+      });
+      if (!error) await fetchConversations();
+    },
+    [currentUserId, fetchConversations]
+  );
 
   useEffect(() => {
     fetchConversations();
@@ -142,5 +165,5 @@ export function useConversations(currentUserId: string | undefined) {
     };
   }, [fetchConversations]);
 
-  return { conversations, isLoading, refresh: fetchConversations };
+  return { conversations, isLoading, refresh: fetchConversations, hideConversation };
 }

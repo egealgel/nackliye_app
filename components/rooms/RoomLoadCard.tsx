@@ -185,13 +185,18 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
           <View
             style={[
               styles.statusBadge,
-              isAssignedStatus ? styles.statusBadgeAssigned : styles.statusBadgeDefault,
+              isAssignedStatus
+                ? styles.statusBadgeAssigned
+                : load.status === 'active'
+                  ? styles.statusBadgeActive
+                  : styles.statusBadgeDefault,
             ]}
           >
             <Text
               style={[
                 styles.statusBadgeText,
                 isAssignedStatus && styles.statusBadgeTextAssigned,
+                load.status === 'active' && styles.statusBadgeTextActive,
               ]}
             >
               {statusLabel}
@@ -515,6 +520,9 @@ const styles = StyleSheet.create({
   statusBadgeDefault: {
     backgroundColor: '#E5E7EB',
   },
+  statusBadgeActive: {
+    backgroundColor: '#E6F9E6',
+  },
   statusBadgeAssigned: {
     backgroundColor: '#DC2626',
   },
@@ -522,6 +530,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#374151',
+  },
+  statusBadgeTextActive: {
+    color: '#22C55E',
   },
   statusBadgeTextAssigned: {
     color: '#FFFFFF',

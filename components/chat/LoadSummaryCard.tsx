@@ -41,8 +41,18 @@ export default function LoadSummaryCard({
       />
       <View style={styles.meta}>
         <Text style={styles.weight}>{formatWeight(weightKg)}</Text>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>
+        <View
+          style={[
+            styles.statusBadge,
+            status === 'active' && styles.statusBadgeActive,
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              status === 'active' && styles.statusTextActive,
+            ]}
+          >
             {STATUS_LABELS[status] || status}
           </Text>
         </View>
@@ -75,9 +85,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
+  statusBadgeActive: {
+    backgroundColor: '#E6F9E6',
+  },
   statusText: {
     fontSize: 13,
     fontWeight: '600',
     color: '#374151',
+  },
+  statusTextActive: {
+    color: '#22C55E',
   },
 });

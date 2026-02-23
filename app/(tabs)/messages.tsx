@@ -19,7 +19,7 @@ const PRIMARY = '#FF6B35';
 export default function MessagesScreen() {
   const { session } = useAuth();
   const currentUserId = session?.user?.id;
-  const { conversations, isLoading, refresh } = useConversations(currentUserId);
+  const { conversations, isLoading, refresh, hideConversation } = useConversations(currentUserId);
   const { refresh: refreshUnread } = useUnreadCount();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -37,8 +37,10 @@ export default function MessagesScreen() {
   }, [refresh, refreshUnread]);
 
   const renderItem = useCallback(
-    ({ item }: { item: Conversation }) => <ConversationRow conversation={item} />,
-    []
+    ({ item }: { item: Conversation }) => (
+      <ConversationRow conversation={item} onHide={hideConversation} />
+    ),
+    [hideConversation]
   );
 
   const keyExtractor = useCallback((item: Conversation) => item.id, []);

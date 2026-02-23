@@ -1,11 +1,24 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActionSheetIOS,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { Swipeable } from 'react-native-gesture-handler';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Conversation } from '@/hooks/useConversations';
 
+const CONFIRM_MESSAGE =
+  'Bu sohbet listenizden kaldırılacak. Karşı tarafın mesajları etkilenmez.';
+
 type Props = {
   conversation: Conversation;
+  onHide: (loadId: string, otherUserId: string) => void;
 };
 
 const PRIMARY = '#FF6B35';
@@ -21,8 +34,25 @@ function routeSubtitle(
   return from && to ? `${from} → ${to}` : '';
 }
 
-export default function ConversationRow({ conversation }: Props) {
+function renderRightActions(
+  onPress: () => void
+): React.ReactNode {
+  return (
+    <TouchableOpacity
+      style={styles.deleteAction}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+      <Text style={styles.deleteActionText}>Sil</Text>
+    </TouchableOpacity>
+  );
+}
+
+export default function ConversationRow({ conversation, onHide }: Props) {
   const router = useRouter();
+  const swipeableRef = useRef<Swipeable | null>(null);
+
   const routeStr = routeSubtitle(
     conversation.fromCity,
     conversation.fromDistrict,
@@ -46,6 +76,40 @@ export default function ConversationRow({ conversation }: Props) {
     });
   };
 
+  const confirmAndHide = () => {
+    Alert.alert(
+      'Sohbeti Kaldır',
+      CONFIRM_MESSAGE,
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: () => onHide(conversation.loadId, conversation.otherUserId),
+        },
+      ]
+    );
+  };
+
+  const handleLongPress = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['İptal', 'Sohbeti Sil'],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+          title: 'Sohbet',
+          message: CONFIRM_MESSAGE,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) confirmAndHide();
+        }
+      );
+    } else {
+      confirmAndHide();
+    }
+  };
+
   const timeStr = (() => {
     const d = new Date(conversation.lastMessageAt);
     const now = new Date();
@@ -59,8 +123,14 @@ export default function ConversationRow({ conversation }: Props) {
     return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
   })();
 
-  return (
-    <TouchableOpacity style={styles.row} onPress={openChat} activeOpacity={0.7}>
+  const rowContent = (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={openChat}
+      onLongPress={handleLongPress}
+      activeOpacity={0.7}
+      delayLongPress={400}
+    >
       <View style={styles.avatar}>
         <Ionicons name="person" size={24} color="#9CA3AF" />
       </View>
@@ -93,6 +163,20 @@ export default function ConversationRow({ conversation }: Props) {
         </View>
       )}
     </TouchableOpacity>
+  );
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={() => renderRightActions(() => {
+        swipeableRef.current?.close();
+        confirmAndHide();
+      })}
+      friction={2}
+      rightThreshold={40}
+    >
+      {rowContent}
+    </Swipeable>
   );
 }
 
@@ -162,5 +246,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
+  },
+  deleteAction: {
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    paddingHorizontal: 16,
+  },
+  deleteActionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 4,
   },
 });
