@@ -13,11 +13,35 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
     }
 
     setIsLoading(true);
-    const { data: messages } = await supabase
+    // Interested parties = users who messaged OR called the owner (receiver_id = loadOwnerId).
+    // For call_attempt, sender_id = person who tapped Ara (the caller).
+    const queryFilter = {
+      load_id: loadId,
+      receiver_id: loadOwnerId,
+      message_types: ['text', 'image', 'document', 'call_attempt'],
+    };
+    const { data: messages, error: queryError } = await supabase
       .from('messages')
-      .select('sender_id')
+      .select('id, sender_id, message_type')
       .eq('load_id', loadId)
-      .eq('receiver_id', loadOwnerId);
+      .eq('receiver_id', loadOwnerId)
+      .in('message_type', ['text', 'image', 'document', 'call_attempt']);
+
+    console.log('[useLoadMessageSenders] İş Ver query', {
+      loadId,
+      loadOwnerId,
+      queryFilter,
+      rowCount: messages?.length ?? 0,
+      error: queryError?.message ?? null,
+      rows: messages ?? [],
+    });
+
+    if (queryError) {
+      console.warn('[useLoadMessageSenders] query error', queryError);
+      setSenders([]);
+      setIsLoading(false);
+      return;
+    }
 
     if (!messages || messages.length === 0) {
       setSenders([]);
@@ -26,10 +50,25 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
     }
 
     const uniqueSenderIds = [...new Set(messages.map((m) => m.sender_id))];
+    const hasMessageBySender = new Map<string, boolean>();
+    const hasCallAttemptBySender = new Map<string, boolean>();
+    for (const m of messages) {
+      if (m.message_type === 'call_attempt') {
+        hasCallAttemptBySender.set(m.sender_id, true);
+      } else {
+        hasMessageBySender.set(m.sender_id, true);
+      }
+    }
+
+    console.log('[useLoadMessageSenders] derived', {
+      uniqueSenderIds,
+      hasMessageBySender: Object.fromEntries(hasMessageBySender),
+      hasCallAttemptBySender: Object.fromEntries(hasCallAttemptBySender),
+    });
 
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, name, phone')
+      .select('id, name, phone, vehicle_type')
       .in('id', uniqueSenderIds);
 
     const result: MessageSender[] = (profiles || []).map((p) => ({
@@ -37,7 +76,12 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
       userId: p.id,
       name: p.name || 'Bilinmiyor',
       phone: p.phone || '',
+      vehicleType: p.vehicle_type || null,
+      hasMessage: hasMessageBySender.get(p.id) ?? false,
+      hasCallAttempt: hasCallAttemptBySender.get(p.id) ?? false,
     }));
+
+    console.log('[useLoadMessageSenders] result senders', result.length, result);
 
     setSenders(result);
     setIsLoading(false);

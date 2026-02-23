@@ -72,6 +72,27 @@ export default function JobActiveCard({ load, currentUserId, onComplete }: Props
       phone = data?.phone || '';
     }
 
+    if (otherUserId && load.id) {
+      const payload = {
+        sender_id: currentUserId,
+        receiver_id: otherUserId,
+        load_id: load.id,
+        content: '📞 Arama yapıldı',
+        message_type: 'call_attempt',
+      };
+      const { data: insertData, error: insertError } = await supabase
+        .from('messages')
+        .insert(payload)
+        .select('id, sender_id, receiver_id, load_id, message_type, created_at')
+        .single();
+      console.log('[JobActiveCard] call_attempt insert', {
+        payload,
+        ok: !insertError,
+        data: insertData,
+        error: insertError?.message ?? null,
+      });
+    }
+
     const tel = formatPhoneForDial(phone || '');
     if (!tel) {
       Alert.alert('Hata', 'Telefon numarası bulunamadı.');

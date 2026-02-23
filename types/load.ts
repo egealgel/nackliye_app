@@ -115,6 +115,11 @@ export type MessageSender = {
   userId: string;
   name: string;
   phone: string;
+  vehicleType: string | null;
+  /** User sent at least one regular message (text/image/document/system) for this load */
+  hasMessage: boolean;
+  /** User tapped Ara (call) at least once for this load */
+  hasCallAttempt: boolean;
 };
 
 export function timeAgo(dateStr: string): string {

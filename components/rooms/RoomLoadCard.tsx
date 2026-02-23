@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -71,10 +73,12 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
     isOwner ? load.user_id : null,
   );
 
+  const [showAssignModal, setShowAssignModal] = useState(false);
+
   const handleAssign = (driverId: string, driverName: string) => {
     Alert.alert(
       'İş Ver',
-      `${driverName} kullanıcısına bu yükü atamak istediğinize emin misiniz?`,
+      `Bu işi ${driverName} adlı kullanıcıya vermek istediğinize emin misiniz?`,
       [
         { text: 'İptal', style: 'cancel' },
         { text: 'Onayla', style: 'default', onPress: () => doAssign(driverId) },
@@ -85,10 +89,40 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
   const doAssign = async (driverId: string) => {
     setAssigning(driverId);
     try {
-      await supabase
+      const { error } = await supabase
         .from('loads')
-        .update({ status: 'assigned', assigned_to: driverId })
+        .update({
+          status: 'assigned',
+          assigned_to: driverId,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', load.id);
+
+      if (error) throw error;
+
+      await supabase.from('messages').insert({
+        sender_id: currentUserId,
+        receiver_id: driverId,
+        load_id: load.id,
+        content: '✅ Bu iş size verildi.',
+        message_type: 'system',
+      });
+
+      const bodyText = `${load.from_city}${load.from_district ? '/' + load.from_district : ''} → ${load.to_city}${load.to_district ? '/' + load.to_district : ''}`;
+      try {
+        await supabase.functions.invoke('send-notification', {
+          body: {
+            user_id: driverId,
+            title: 'Yeni bir iş aldınız!',
+            body: bodyText,
+            data: { type: 'load', loadId: load.id },
+          },
+        });
+      } catch {
+        // silent fail for push
+      }
+
+      setShowAssignModal(false);
     } catch (err: any) {
       Alert.alert('Hata', err.message || 'Bir hata oluştu.');
     } finally {
@@ -148,6 +182,26 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
       phone = data?.phone || '';
     }
 
+    if (targetUserId && load.id) {
+      const payload = {
+        sender_id: currentUserId,
+        receiver_id: targetUserId,
+        load_id: load.id,
+        content: '📞 Arama yapıldı',
+        message_type: 'call_attempt',
+      };
+      const { data: insertData, error: insertError } = await supabase
+        .from('messages')
+        .insert(payload)
+        .select('id, sender_id, receiver_id, load_id, message_type, created_at')
+        .single();
+      console.log('[RoomLoadCard] call_attempt insert', {
+        payload,
+        ok: !insertError,
+        data: insertData,
+        error: insertError?.message ?? null,
+      });
+    }
     await openCall(phone || '');
   };
 
@@ -355,46 +409,108 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
             </ScrollView>
           )}
 
-          {/* --- Owner: list of message senders with İş Ver --- */}
-          {isOwner && !isAssigned && senders.length > 0 && (
+          {/* --- Owner: prominent İş Ver button for active/has_offers --- */}
+          {isOwner &&
+            ['active', 'has_offers'].includes(load.status) && (
+              <>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.bigAssignBtn}
+                  onPress={() => {
+                    refresh();
+                    setShowAssignModal(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="person-add" size={22} color="#FFFFFF" />
+                  <Text style={styles.bigAssignBtnText}>İş Ver</Text>
+                  {senders.length > 0 && (
+                    <View style={styles.bigAssignBadge}>
+                      <Text style={styles.bigAssignBadgeText}>
+                        {senders.length}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+          {/* --- Owner: İş Verildi badge when assigned --- */}
+          {isOwner && isAssigned && load.assignedDriverName && (
             <>
               <View style={styles.divider} />
-              <Text style={styles.sectionTitle}>Mesaj Gönderenler</Text>
-              {senders.map((s) => (
-                <View key={s.id} style={styles.senderRow}>
-                  <View style={styles.senderInfo}>
-                    <Text style={styles.senderName}>{s.name}</Text>
-                  </View>
-                  <View style={styles.senderActions}>
-                    <TouchableOpacity
-                      style={styles.msgBtn}
-                      onPress={() => openChat(s.userId, s.name, s.phone)}
-                    >
-                      <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
-                      <Text style={styles.msgBtnText}>Mesaj</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.callBtn}
-                      onPress={() => openCall(s.phone)}
-                    >
-                      <Ionicons name="call" size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.assignBtn}
-                      onPress={() => handleAssign(s.userId, s.name)}
-                      disabled={assigning !== null}
-                    >
-                      {assigning === s.userId ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.assignBtnText}>İş Ver</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
+              <View style={styles.assignedBadgeRow}>
+                <Ionicons name="checkmark-circle" size={22} color={GREEN} />
+                <Text style={styles.assignedBadgeText}>
+                  İş Verildi — {load.assignedDriverName}
+                </Text>
+              </View>
             </>
           )}
+
+          {/* --- Owner: list of message senders and callers with İş Ver --- */}
+          {isOwner &&
+            ['active', 'has_offers'].includes(load.status) &&
+            senders.length > 0 && (
+              <>
+                <View style={styles.divider} />
+                <Text style={styles.sectionTitle}>İletişim kuranlar</Text>
+                {senders.map((s) => (
+                  <View key={s.id} style={styles.senderRow}>
+                    <View style={styles.senderInfo}>
+                      <View style={styles.senderNameRow}>
+                        <Text style={styles.senderName}>{s.name}</Text>
+                        <View style={styles.senderIcons}>
+                          {s.hasMessage && (
+                            <Ionicons name="chatbubble" size={14} color="#6B7280" style={styles.senderIcon} />
+                          )}
+                          {s.hasCallAttempt && (
+                            <Ionicons name="call" size={14} color="#6B7280" style={styles.senderIcon} />
+                          )}
+                        </View>
+                      </View>
+                      {s.vehicleType && (
+                        <Text style={styles.senderVehicle}>
+                          {VEHICLE_LABELS[
+                            s.vehicleType as keyof typeof VEHICLE_LABELS
+                          ] || s.vehicleType}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.senderActions}>
+                      <TouchableOpacity
+                        style={styles.msgBtn}
+                        onPress={() => openChat(s.userId, s.name, s.phone)}
+                      >
+                        <Ionicons
+                          name="chatbubble-outline"
+                          size={18}
+                          color="#FFFFFF"
+                        />
+                        <Text style={styles.msgBtnText}>Mesaj</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.callBtn}
+                        onPress={() => openCall(s.phone)}
+                      >
+                        <Ionicons name="call" size={18} color="#FFFFFF" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.assignBtn}
+                        onPress={() => handleAssign(s.userId, s.name)}
+                        disabled={assigning !== null}
+                      >
+                        {assigning === s.userId ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <Text style={styles.assignBtnText}>İş Ver</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
 
           {/* --- Non-owner: Mesaj Gönder + Ara buttons --- */}
           {!isAssigned && !isOwner && (
@@ -421,12 +537,14 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
             </View>
           )}
 
-          {/* --- Owner with no message senders yet --- */}
-          {isOwner && !isAssigned && senders.length === 0 && (
-            <Text style={styles.emptySenders}>
-              Henüz mesaj yok. Sürücüler size mesaj gönderdiğinde burada listelenecek.
-            </Text>
-          )}
+          {/* --- Owner with no message senders or callers yet --- */}
+          {isOwner &&
+            ['active', 'has_offers'].includes(load.status) &&
+            senders.length === 0 && (
+              <Text style={styles.emptySenders}>
+                Henüz mesaj veya arama yok. Sürücüler size mesaj gönderdiğinde veya Ara'ya tıkladığında burada listelenecek.
+              </Text>
+            )}
 
           {/* --- Assigned, in_transit, delivered: Mesaj + Ara (owner→driver, driver→owner) --- */}
           {hasCounterparty && (
@@ -500,6 +618,88 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
         initialIndex={fullScreenPhotoIndex ?? 0}
         onClose={() => setFullScreenPhotoIndex(null)}
       />
+
+      {/* --- İş Ver bottom sheet modal --- */}
+      <Modal
+        visible={showAssignModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAssignModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAssignModal(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>
+              Kime iş vermek istiyorsunuz?
+            </Text>
+
+            {senders.length === 0 ? (
+              <View style={styles.modalEmpty}>
+                <Ionicons
+                  name="chatbubbles-outline"
+                  size={48}
+                  color="#D1D5DB"
+                />
+                <Text style={styles.modalEmptyText}>
+                  Henüz bu yük için mesaj gönderen veya arayan yok. Yükünüzle ilgilenen kişiler burada listelenecek.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={senders}
+                keyExtractor={(item) => item.id}
+                style={styles.modalList}
+                renderItem={({ item: s }) => (
+                  <View style={styles.modalSenderRow}>
+                    <View style={styles.modalSenderInfo}>
+                      <View style={styles.modalSenderNameRow}>
+                        <Text style={styles.modalSenderName}>{s.name}</Text>
+                        <View style={styles.modalSenderIcons}>
+                          {s.hasMessage && (
+                            <Ionicons name="chatbubble" size={14} color="#6B7280" style={styles.senderIcon} />
+                          )}
+                          {s.hasCallAttempt && (
+                            <Ionicons name="call" size={14} color="#6B7280" style={styles.senderIcon} />
+                          )}
+                        </View>
+                      </View>
+                      {s.vehicleType && (
+                        <Text style={styles.modalSenderVehicle}>
+                          {VEHICLE_LABELS[
+                            s.vehicleType as keyof typeof VEHICLE_LABELS
+                          ] || s.vehicleType}
+                        </Text>
+                      )}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.modalAssignBtn}
+                      onPress={() => handleAssign(s.userId, s.name)}
+                      disabled={assigning !== null}
+                    >
+                      {assigning === s.userId ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.modalAssignBtnText}>İş Ver</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            )}
+
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setShowAssignModal(false)}
+            >
+              <Text style={styles.modalCloseBtnText}>Kapat</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </TouchableOpacity>
   );
 }
@@ -690,10 +890,28 @@ const styles = StyleSheet.create({
   senderInfo: {
     flex: 1,
   },
+  senderNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   senderName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  senderIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  senderIcon: {
+    marginLeft: 0,
+  },
+  senderVehicle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
   },
   senderActions: {
     flexDirection: 'row',
@@ -802,5 +1020,149 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#16A34A',
+  },
+
+  bigAssignBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: GREEN,
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 10,
+  },
+  bigAssignBtnText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  bigAssignBadge: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  bigAssignBadgeText: {
+    color: GREEN,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  assignedBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+  },
+  assignedBadgeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: GREEN,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
+    maxHeight: '70%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  modalList: {
+    flexGrow: 0,
+  },
+  modalSenderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  modalSenderInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  modalSenderNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  modalSenderName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  modalSenderIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  modalSenderVehicle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  modalAssignBtn: {
+    backgroundColor: GREEN,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  modalAssignBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 12,
+  },
+  modalEmptyText: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: 20,
+  },
+  modalCloseBtn: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  modalCloseBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
   },
 });

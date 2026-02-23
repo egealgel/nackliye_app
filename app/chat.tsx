@@ -34,7 +34,7 @@ type Message = {
   receiver_id: string;
   content: string;
   media_url: string | null;
-  message_type: 'text' | 'image' | 'document' | 'system';
+  message_type: 'text' | 'image' | 'document' | 'system' | 'call_attempt';
   read_at: string | null;
   created_at: string;
 };
@@ -387,6 +387,13 @@ export default function ChatScreen() {
         </View>
       );
     }
+    if (m.message_type === 'call_attempt') {
+      return (
+        <View style={styles.systemRow}>
+          <Text style={styles.callAttemptText}>{m.content}</Text>
+        </View>
+      );
+    }
 
     const isMe = m.sender_id === currentUserId;
     const isDocument = m.message_type === 'document';
@@ -726,6 +733,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     overflow: 'hidden',
     lineHeight: 18,
+  },
+  callAttemptText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 16,
   },
   bubbleWrap: {
     alignSelf: 'flex-start',
