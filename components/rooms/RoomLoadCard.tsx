@@ -282,7 +282,7 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
 
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>İlan Sahibi</Text>
-            <View style={styles.detailValueRow}>
+            <View style={styles.detailValueWithStars}>
               <Text style={styles.detailValue}>{load.ownerName}</Text>
               {(load.ownerRatingAvg ?? 0) > 0 && (
                 <View style={styles.starsRow}>
@@ -587,24 +587,25 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   detailLabel: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: '#6B7280',
+    marginRight: 12,
   },
   detailValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
   },
-  detailValueRow: {
-    flex: 1,
+  detailValueWithStars: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
+    gap: 4,
+    flexShrink: 0,
   },
   starsRow: {
     flexDirection: 'row',
