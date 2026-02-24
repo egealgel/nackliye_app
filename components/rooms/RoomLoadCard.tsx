@@ -179,9 +179,9 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
         </Text>
       </View>
 
-      {/* Row 3: Status badge (left), weight + time (right) */}
-      <View style={styles.bottomRow}>
-        <View style={styles.badgeTimeRow}>
+      {/* Row 3: [Status] · weight · vehicle type (tags) + chevron */}
+      <View style={styles.tagsRow}>
+        <View style={styles.tagsLine}>
           <View
             style={[
               styles.statusBadge,
@@ -202,16 +202,13 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
               {statusLabel}
             </Text>
           </View>
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <MaterialCommunityIcons name="package-variant" size={16} color="#6B7280" />
-              <Text style={styles.metaText}>{formatWeight(load.weight_kg)}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color="#6B7280" />
-              <Text style={styles.metaText}>{timeAgo(load.created_at)}</Text>
-            </View>
-          </View>
+          <Text style={styles.tagDot}>·</Text>
+          <Text style={styles.tagText}>{formatWeight(load.weight_kg)}</Text>
+          <Text style={styles.tagDot}>·</Text>
+          <Text style={styles.tagText}>
+            {VEHICLE_LABELS[load.vehicle_type as keyof typeof VEHICLE_LABELS] ||
+              load.vehicle_type}
+          </Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -280,34 +277,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
             </View>
           )}
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>İlan Sahibi</Text>
-            <View style={styles.detailValueWithStars}>
-              <Text style={styles.detailValue}>{load.ownerName}</Text>
-              {(load.ownerRatingAvg ?? 0) > 0 && (
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Ionicons
-                      key={s}
-                      name={(load.ownerRatingAvg ?? 0) >= s ? 'star' : 'star-outline'}
-                      size={12}
-                      color="#F59E0B"
-                      style={styles.starIcon}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Araç Tipi</Text>
-            <Text style={styles.detailValue}>
-              {VEHICLE_LABELS[load.vehicle_type as keyof typeof VEHICLE_LABELS] ||
-                load.vehicle_type}
-            </Text>
-          </View>
-
           {hasDimensions && (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Boyut</Text>
@@ -360,6 +329,42 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
               </View>
             </>
           )}
+
+          {/* --- Contact: owner name + stars (above action buttons) --- */}
+          {(!isAssigned && !isOwner) || hasCounterparty ? (
+            <View style={styles.contactLine}>
+              <Text style={styles.contactName}>
+                {!isAssigned && !isOwner
+                  ? load.ownerName
+                  : isOwner
+                    ? load.assignedDriverName
+                    : load.ownerName}
+              </Text>
+              {((!isAssigned && !isOwner && (load.ownerRatingAvg ?? 0) > 0) ||
+                (hasCounterparty && isOwner && (load.assignedDriverRatingAvg ?? 0) > 0) ||
+                (hasCounterparty && !isOwner && (load.ownerRatingAvg ?? 0) > 0)) && (
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((s) => {
+                    const avg =
+                      !isAssigned && !isOwner
+                        ? load.ownerRatingAvg ?? 0
+                        : isOwner
+                          ? load.assignedDriverRatingAvg ?? 0
+                          : load.ownerRatingAvg ?? 0;
+                    return (
+                      <Ionicons
+                        key={s}
+                        name={avg >= s ? 'star' : 'star-outline'}
+                        size={14}
+                        color="#F59E0B"
+                        style={styles.starIcon}
+                      />
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          ) : null}
 
           {/* --- Non-owner: Mesaj Gönder + Ara buttons --- */}
           {!isAssigned && !isOwner && (
@@ -499,18 +504,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
   },
-  bottomRow: {
+  tagsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
     gap: 8,
   },
-  badgeTimeRow: {
+  tagsLine: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
     minWidth: 0,
+  },
+  tagDot: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  tagText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -539,20 +555,6 @@ const styles = StyleSheet.create({
   },
   chevron: {
     flexShrink: 0,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 12,
-    flexShrink: 0,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: 13,
-    color: '#6B7280',
   },
   details: {
     marginTop: 4,
@@ -601,11 +603,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  detailValueWithStars: {
+  contactLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    flexShrink: 0,
+    gap: 6,
+    marginBottom: 10,
+  },
+  contactName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
   },
   starsRow: {
     flexDirection: 'row',
