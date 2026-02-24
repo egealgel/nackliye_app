@@ -9,6 +9,7 @@ export type RoomFilters = {
   fromCities: string[];
   fromCityDistricts: Record<string, string[]>; // city -> districts; empty = all districts
   toCities: string[];
+  toCityDistricts: Record<string, string[]>; // city -> districts for destination
   dateFilter: DateFilter;
   statusFilter: StatusFilter;
 };
@@ -164,16 +165,26 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       return;
     }
 
-    // Filter by district in memory (when fromCityDistricts has selections)
+    // Filter by district in memory (from and to)
     let filteredByDistrict = loadsData;
-    const citiesWithDistricts = filters.fromCities.filter(
+    const fromCitiesWithDistricts = filters.fromCities.filter(
       (c) => filters.fromCityDistricts[c] && filters.fromCityDistricts[c].length > 0
     );
-    if (citiesWithDistricts.length > 0) {
-      filteredByDistrict = loadsData.filter((l) => {
+    if (fromCitiesWithDistricts.length > 0) {
+      filteredByDistrict = filteredByDistrict.filter((l) => {
         const cityDists = filters.fromCityDistricts[l.from_city];
         if (!cityDists || cityDists.length === 0) return filters.fromCities.includes(l.from_city);
         return cityDists.includes(l.from_district ?? '');
+      });
+    }
+    const toCitiesWithDistricts = filters.toCities.filter(
+      (c) => filters.toCityDistricts[c] && filters.toCityDistricts[c].length > 0
+    );
+    if (toCitiesWithDistricts.length > 0) {
+      filteredByDistrict = filteredByDistrict.filter((l) => {
+        const cityDists = filters.toCityDistricts[l.to_city];
+        if (!cityDists || cityDists.length === 0) return filters.toCities.includes(l.to_city);
+        return cityDists.includes(l.to_district ?? '');
       });
     }
 
@@ -213,7 +224,7 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       setLoads(sortedResult);
       setIsLoading(false);
     }
-  }, [vehicleType, filters.fromCities, filters.fromCityDistricts, filters.toCities, filters.dateFilter, filters.statusFilter]);
+  }, [vehicleType, filters.fromCities, filters.fromCityDistricts, filters.toCities, filters.toCityDistricts, filters.dateFilter, filters.statusFilter]);
 
   useEffect(() => {
     isMounted.current = true;

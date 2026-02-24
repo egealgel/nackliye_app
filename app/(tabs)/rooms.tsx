@@ -6,16 +6,18 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { VehicleType, LoadWithDetails } from '@/types/load';
 import { useRoomLoads, useRoomCounts, type RoomFilters } from '@/hooks/useRoomLoads';
 import RoomTabs from '@/components/rooms/RoomTabs';
-import RoomFilterBar from '@/components/rooms/RoomFilterBar';
 import RoomLoadCard from '@/components/rooms/RoomLoadCard';
+import RoomFilterSheet from '@/components/rooms/RoomFilterSheet';
 
 const PRIMARY = '#2563EB';
 
@@ -41,8 +43,15 @@ export default function RoomsScreen() {
   }, []);
 
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const { loads, isLoading, refresh, removeLoad } = useRoomLoads(selectedRoom, filters);
   const { counts, refresh: refreshCounts } = useRoomCounts();
+
+  const hasAnyFilter =
+    filters.fromCities.length > 0 ||
+    filters.toCities.length > 0 ||
+    filters.dateFilter !== 'all' ||
+    filters.statusFilter !== 'active';
 
   useFocusEffect(
     useCallback(() => {
@@ -87,7 +96,21 @@ export default function RoomsScreen() {
         <Text style={styles.greeting}>
           Merhaba, {profile?.name ?? 'Kullanıcı'}!
         </Text>
-        <Text style={styles.title}>Odalar</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Odalar</Text>
+          <TouchableOpacity
+            style={styles.filterIconBtn}
+            onPress={() => setFilterSheetVisible(true)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <MaterialCommunityIcons
+              name="filter-variant"
+              size={24}
+              color={hasAnyFilter ? PRIMARY : '#374151'}
+            />
+            {hasAnyFilter && <View style={styles.filterBadge} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       <RoomTabs
@@ -96,7 +119,22 @@ export default function RoomsScreen() {
         counts={counts}
       />
 
-      <RoomFilterBar filters={filters} onFiltersChange={setFilters} />
+      {hasAnyFilter && (
+        <TouchableOpacity
+          style={styles.filtreAktifRow}
+          onPress={() => setFilterSheetVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.filtreAktifText}>🔍 Filtre aktif</Text>
+        </TouchableOpacity>
+      )}
+
+      <RoomFilterSheet
+        visible={filterSheetVisible}
+        appliedFilters={filters}
+        onApply={setFilters}
+        onClose={() => setFilterSheetVisible(false)}
+      />
 
       {isLoading ? (
         <View style={styles.center}>
@@ -143,10 +181,38 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 2,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   title: {
     fontSize: 24,
     fontWeight: '800',
     color: '#1A1A1A',
+  },
+  filterIconBtn: {
+    position: 'relative',
+    padding: 4,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: PRIMARY,
+  },
+  filtreAktifRow: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignSelf: 'flex-start',
+  },
+  filtreAktifText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: PRIMARY,
   },
   center: {
     flex: 1,
