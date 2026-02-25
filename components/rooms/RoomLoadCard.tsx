@@ -22,6 +22,7 @@ import {
   formatWeight,
   timeAgo,
   VEHICLE_LABELS,
+  isBosAracLoad,
 } from '@/types/load';
 
 const PRIMARY = '#2563EB';
@@ -76,10 +77,10 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
         otherUserId,
         otherUserName: otherName || '',
         otherUserPhone: otherPhone || '',
-        fromCity: load.from_city,
-        fromDistrict: load.from_district,
-        toCity: load.to_city,
-        toDistrict: load.to_district,
+        fromCity: load.from_city ?? '',
+        fromDistrict: load.from_district ?? '',
+        toCity: load.to_city ?? '',
+        toDistrict: load.to_district ?? '',
       },
     });
   };
@@ -157,12 +158,71 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
             : 'Aktif';
   const isAssignedStatus = load.status === 'assigned';
 
+  const isBosArac = isBosAracLoad(load);
+
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.8}
     >
+      {isBosArac ? (
+        <>
+          <Text style={styles.bosAracDescription} numberOfLines={2}>
+            {load.description || 'Boş araç ilanı'}
+          </Text>
+          <View style={styles.bosAracMetaRow}>
+            <View
+              style={[
+                styles.statusBadge,
+                isAssignedStatus
+                  ? styles.statusBadgeAssigned
+                  : load.status === 'active'
+                    ? styles.statusBadgeActive
+                    : styles.statusBadgeDefault,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusBadgeText,
+                  isAssignedStatus && styles.statusBadgeTextAssigned,
+                  load.status === 'active' && styles.statusBadgeTextActive,
+                ]}
+              >
+                {statusLabel}
+              </Text>
+            </View>
+            <View style={styles.bosAracTimeRow}>
+              <Ionicons name="time-outline" size={14} color="#6B7280" />
+              <Text style={styles.bosAracTimeText}>{timeAgo(load.created_at)}</Text>
+            </View>
+            <View style={styles.bosAracOwnerRow}>
+              <Text style={styles.bosAracOwnerName}>{load.ownerName}</Text>
+              {(load.ownerRatingAvg ?? 0) > 0 && (
+                <View style={styles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Ionicons
+                      key={s}
+                      name={(load.ownerRatingAvg ?? 0) >= s ? 'star' : 'star-outline'}
+                      size={12}
+                      color="#F59E0B"
+                      style={styles.starIcon}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+          <View style={styles.bosAracChevronRow}>
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#9CA3AF"
+            />
+          </View>
+        </>
+      ) : (
+        <>
       {/* Row 1: Origin */}
       <View style={styles.routeRow}>
         <View style={[styles.dot, styles.dotOrigin]} />
@@ -217,11 +277,97 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
           style={styles.chevron}
         />
       </View>
+        </>
+      )}
 
       {expanded && (
         <View style={styles.details}>
           <View style={styles.divider} />
 
+          {isBosArac ? (
+            <>
+              {isOwner && ['active', 'has_offers'].includes(load.status) && (
+                <View style={styles.ownerActions}>
+                  <TouchableOpacity
+                    style={[styles.ownerActionBtn, styles.ownerActionBtnDanger]}
+                    onPress={() =>
+                      Alert.alert(
+                        'İlanı Sil',
+                        'Bu ilanı silmek istediğinize emin misiniz?',
+                        [
+                          { text: 'İptal', style: 'cancel' },
+                          {
+                            text: 'Sil',
+                            style: 'destructive',
+                            onPress: async () => {
+                              const { error } = await supabase
+                                .from('loads')
+                                .delete()
+                                .eq('id', load.id);
+                              if (error) {
+                                Alert.alert('Hata', error.message || 'Silme işlemi başarısız.');
+                                return;
+                              }
+                              onDelete?.(load.id);
+                              router.back();
+                            },
+                          },
+                        ],
+                      )
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                    <Text style={[styles.ownerActionText, { color: '#DC2626' }]}>Sil</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {load.description ? (
+                <View style={styles.descriptionBox}>
+                  <Text style={styles.descriptionText}>{load.description}</Text>
+                </View>
+              ) : null}
+              <View style={styles.contactLine}>
+                <Text style={styles.contactName}>{load.ownerName}</Text>
+                {(load.ownerRatingAvg ?? 0) > 0 && (
+                  <View style={styles.starsRow}>
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Ionicons
+                        key={s}
+                        name={(load.ownerRatingAvg ?? 0) >= s ? 'star' : 'star-outline'}
+                        size={14}
+                        color="#F59E0B"
+                        style={styles.starIcon}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+              {!isOwner && (
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.mesajButton}
+                    onPress={() =>
+                      openChat(load.user_id, load.ownerName, load.ownerPhone)
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
+                    <Text style={styles.mesajButtonText}>Mesaj Gönder</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.araButton}
+                    onPress={handleAraPress}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="call" size={22} color="#FFFFFF" />
+                    <Text style={styles.araButtonText}>Ara</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          ) : (
+            <>
           {isOwner && ['active', 'has_offers'].includes(load.status) && (
             <View style={styles.ownerActions}>
               <TouchableOpacity
@@ -455,6 +601,8 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
               )}
             </>
           )}
+            </>
+          )}
         </View>
       )}
       <ImageViewerModal
@@ -479,6 +627,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 3,
+  },
+  bosAracDescription: {
+    fontSize: 15,
+    color: '#1F2937',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  bosAracMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  bosAracTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  bosAracTimeText: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  bosAracOwnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bosAracOwnerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  bosAracChevronRow: {
+    alignItems: 'flex-end',
+    marginTop: 6,
   },
   routeRow: {
     flexDirection: 'row',

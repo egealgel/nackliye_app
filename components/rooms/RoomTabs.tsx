@@ -12,7 +12,7 @@ type Props = {
 const PRIMARY = '#2563EB';
 
 const ROW1 = ['minivan', 'kamyonet', 'kamyon'] as VehicleType[];
-const ROW2 = ['tir', 'damperli'] as VehicleType[];
+const ROW2 = ['tir', 'damperli', 'bos_arac'] as VehicleType[];
 
 export default function RoomTabs({ selected, onSelect, counts }: Props) {
   const renderButton = (roomType: VehicleType) => {
@@ -54,7 +54,7 @@ export default function RoomTabs({ selected, onSelect, counts }: Props) {
       <View style={styles.row}>
         {ROW1.map(renderButton)}
       </View>
-      <View style={styles.rowCenter}>
+      <View style={styles.row}>
         {ROW2.map(renderButton)}
       </View>
     </View>
@@ -69,11 +69,6 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 10,
-  },
-  rowCenter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     gap: 10,
   },
   button: {

@@ -1,4 +1,4 @@
-export type VehicleType = 'minivan' | 'kamyonet' | 'kamyon' | 'tir' | 'damperli';
+export type VehicleType = 'minivan' | 'kamyonet' | 'kamyon' | 'tir' | 'damperli' | 'bos_arac';
 
 export type PhotoItem = {
   uri: string;
@@ -26,6 +26,7 @@ export const VEHICLE_WEIGHT_LIMITS: Record<VehicleType, number> = {
   kamyon: 12000,
   tir: 25000,
   damperli: Infinity,
+  bos_arac: 0,
 };
 
 export const VEHICLE_LABELS: Record<VehicleType, string> = {
@@ -34,6 +35,7 @@ export const VEHICLE_LABELS: Record<VehicleType, string> = {
   kamyon: 'Kamyon',
   tir: 'Tır',
   damperli: 'Damperli',
+  bos_arac: 'Boş Araç',
 };
 
 export const VEHICLE_ICONS: Record<VehicleType, string> = {
@@ -42,6 +44,7 @@ export const VEHICLE_ICONS: Record<VehicleType, string> = {
   kamyon: 'truck-cargo-container',
   tir: 'truck-trailer',
   damperli: 'dump-truck',
+  bos_arac: 'car-outline',
 };
 
 export function suggestVehicleType(weightKg: number): VehicleType {
@@ -56,7 +59,8 @@ export function isVehicleCompatible(vehicleType: VehicleType, weightKg: number):
   return weightKg <= VEHICLE_WEIGHT_LIMITS[vehicleType];
 }
 
-export function formatWeight(kg: number): string {
+export function formatWeight(kg: number | null | undefined): string {
+  if (kg == null || kg <= 0) return '—';
   if (kg >= 1000) {
     const tons = kg / 1000;
     return `${tons % 1 === 0 ? tons.toFixed(0) : tons.toFixed(1)} ton`;
@@ -73,16 +77,21 @@ export function formatRoute(
   return `${fromCity}/${fromDistrict} → ${toCity}/${toDistrict}`;
 }
 
+/** True when load is a "Boş Araç" post (empty vehicle share) — no route/weight. */
+export function isBosAracLoad(load: { vehicle_type?: string | null; from_city?: string | null }): boolean {
+  return load.vehicle_type === 'bos_arac' || load.from_city == null;
+}
+
 // --- DB row types ---
 
 export type LoadRow = {
   id: string;
   user_id: string;
-  from_city: string;
-  from_district: string;
-  to_city: string;
-  to_district: string;
-  weight_kg: number;
+  from_city: string | null;
+  from_district: string | null;
+  to_city: string | null;
+  to_district: string | null;
+  weight_kg: number | null;
   width_cm: number | null;
   height_cm: number | null;
   length_cm: number | null;
@@ -148,4 +157,5 @@ export const ROOM_LIST: {
   { type: 'kamyon', label: 'Kamyon', range: '0-12t', icon: 'truck', color: '#2563EB', bg: '#EFF6FF' },
   { type: 'tir', label: 'Tır', range: '0-25t', icon: 'truck-trailer', color: '#9C27B0', bg: '#F3E5F5' },
   { type: 'damperli', label: 'Damperli', range: '25t+', icon: 'dump-truck', color: '#F44336', bg: '#FFEBEE' },
+  { type: 'bos_arac', label: 'Boş Araç', range: 'Araç Paylaş', icon: 'car-outline', color: '#059669', bg: '#ECFDF5' },
 ];

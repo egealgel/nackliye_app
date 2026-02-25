@@ -14,6 +14,7 @@ const VEHICLE_CONFIG: Record<
   "kasa kamyon": { maxWeightKg: 10000, width: 245, height: 270, length: 610 },
   kamyon: { maxWeightKg: 20000, width: 255, height: 400, length: 1360 },
   tır: { maxWeightKg: 40000, width: 255, height: 400, length: 1360 },
+  bos_arac: { maxWeightKg: 0, width: 0, height: 0, length: 0 }, // empty vehicle posts; route/weight not used
 };
 
 // Vehicle type upgrade path when weight exceeds capacity
@@ -26,9 +27,9 @@ const VEHICLE_UPGRADE_ORDER = [
 ] as const;
 
 type LoadInput = {
-  from_city: string;
-  to_city: string;
-  weight_kg: number;
+  from_city: string | null;
+  to_city: string | null;
+  weight_kg: number | null;
   width_cm?: number | null;
   height_cm?: number | null;
   length_cm?: number | null;
@@ -63,32 +64,57 @@ function validateInput(body: unknown): LoadInput {
   }
   const b = body as Record<string, unknown>;
 
-  const from_city = b.from_city;
-  const to_city = b.to_city;
-  const weight_kg = b.weight_kg;
-
-  if (typeof from_city !== "string" || !from_city.trim()) {
-    throw new Error("from_city is required and must be a non-empty string");
-  }
-  if (typeof to_city !== "string" || !to_city.trim()) {
-    throw new Error("to_city is required and must be a non-empty string");
-  }
-  const w = Number(weight_kg);
-  if (!Number.isFinite(w) || w <= 0 || w > 100000) {
-    throw new Error("weight_kg must be a positive number up to 100000");
-  }
-
   const vehicle_type =
     typeof b.vehicle_type === "string" && b.vehicle_type.trim()
       ? b.vehicle_type.trim().toLowerCase()
       : null;
 
-  const suggestedVehicle = getCompatibleVehicleType(w);
+  const isBosArac = vehicle_type === "bos_arac";
+
+  const from_city = b.from_city;
+  const to_city = b.to_city;
+  const weight_kg = b.weight_kg;
+
+  if (isBosArac) {
+    // Boş Araç: from_city, to_city, weight_kg may be null or omitted
+    if (from_city != null && (typeof from_city !== "string" || from_city.trim() !== "")) {
+      throw new Error("from_city must be null or empty for vehicle_type bos_arac");
+    }
+    if (to_city != null && (typeof to_city !== "string" || to_city.trim() !== "")) {
+      throw new Error("to_city must be null or empty for vehicle_type bos_arac");
+    }
+    if (weight_kg != null && typeof weight_kg === "number" && Number.isFinite(weight_kg) && weight_kg > 0) {
+      throw new Error("weight_kg must be null or 0 for vehicle_type bos_arac");
+    }
+  } else {
+    if (typeof from_city !== "string" || !from_city.trim()) {
+      throw new Error("from_city is required and must be a non-empty string");
+    }
+    if (typeof to_city !== "string" || !to_city.trim()) {
+      throw new Error("to_city is required and must be a non-empty string");
+    }
+    const w = Number(weight_kg);
+    if (!Number.isFinite(w) || w <= 0 || w > 100000) {
+      throw new Error("weight_kg must be a positive number up to 100000");
+    }
+  }
+
+  const suggestedVehicle = getCompatibleVehicleType(
+    weight_kg != null && typeof weight_kg === "number" && Number.isFinite(weight_kg) && weight_kg > 0
+      ? weight_kg
+      : 1
+  );
   const effectiveVehicle = vehicle_type ?? suggestedVehicle;
   const config = VEHICLE_CONFIG[effectiveVehicle];
-  // If requested vehicle cannot carry weight → auto-assign compatible type
-  const finalVehicle =
-    config && w > config.maxWeightKg ? suggestedVehicle : effectiveVehicle;
+  const wNum =
+    weight_kg != null && typeof weight_kg === "number" && Number.isFinite(weight_kg) && weight_kg > 0
+      ? weight_kg
+      : 1;
+  const finalVehicle = isBosArac
+    ? "bos_arac"
+    : config && wNum > config.maxWeightKg
+      ? getCompatibleVehicleType(wNum)
+      : effectiveVehicle;
   const dims = getDefaultDimensions(finalVehicle);
 
   const widthRaw = b.width_cm != null ? b.width_cm : dims.width;
@@ -99,14 +125,16 @@ function validateInput(body: unknown): LoadInput {
   const height_cm = typeof heightRaw === "number" ? heightRaw : Number(heightRaw);
   const length_cm = typeof lengthRaw === "number" ? lengthRaw : Number(lengthRaw);
 
-  if (!Number.isFinite(width_cm) || width_cm <= 0) {
-    throw new Error("width_cm must be a positive number");
-  }
-  if (!Number.isFinite(height_cm) || height_cm <= 0) {
-    throw new Error("height_cm must be a positive number");
-  }
-  if (!Number.isFinite(length_cm) || length_cm <= 0) {
-    throw new Error("length_cm must be a positive number");
+  if (!isBosArac) {
+    if (!Number.isFinite(width_cm) || width_cm <= 0) {
+      throw new Error("width_cm must be a positive number");
+    }
+    if (!Number.isFinite(height_cm) || height_cm <= 0) {
+      throw new Error("height_cm must be a positive number");
+    }
+    if (!Number.isFinite(length_cm) || length_cm <= 0) {
+      throw new Error("length_cm must be a positive number");
+    }
   }
 
   const description =
@@ -115,13 +143,26 @@ function validateInput(body: unknown): LoadInput {
     ? (b.photos.filter((p): p is string => typeof p === "string") as string[])
     : [];
 
+  const fromCityVal =
+    isBosArac || from_city == null || (typeof from_city === "string" && !from_city.trim())
+      ? null
+      : (from_city as string).trim();
+  const toCityVal =
+    isBosArac || to_city == null || (typeof to_city === "string" && !to_city.trim())
+      ? null
+      : (to_city as string).trim();
+  const weightVal =
+    isBosArac || weight_kg == null || (typeof weight_kg === "number" && (!Number.isFinite(weight_kg) || weight_kg <= 0))
+      ? null
+      : Number(weight_kg);
+
   return {
-    from_city: from_city.trim(),
-    to_city: to_city.trim(),
-    weight_kg: w,
-    width_cm,
-    height_cm,
-    length_cm,
+    from_city: fromCityVal,
+    to_city: toCityVal,
+    weight_kg: weightVal,
+    width_cm: isBosArac ? null : width_cm,
+    height_cm: isBosArac ? null : height_cm,
+    length_cm: isBosArac ? null : length_cm,
     vehicle_type: finalVehicle,
     description: description ?? null,
     photos: photos.length ? photos : null,
@@ -199,31 +240,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Find matching drivers: same from_city + compatible vehicle (has vehicle_type that can carry weight)
-    const driverVehicleTypes = VEHICLE_UPGRADE_ORDER.filter(
-      (vt) =>
-        VEHICLE_CONFIG[vt] &&
-        input.weight_kg <= VEHICLE_CONFIG[vt].maxWeightKg
-    );
+    // Find matching drivers: same from_city + compatible vehicle (skip for bos_arac — no route)
+    const matchingDrivers: { id: string; name: string }[] = [];
+    if (input.vehicle_type !== "bos_arac" && input.from_city != null && input.weight_kg != null) {
+      const driverVehicleTypes = VEHICLE_UPGRADE_ORDER.filter(
+        (vt) =>
+          VEHICLE_CONFIG[vt] &&
+          input.weight_kg! <= VEHICLE_CONFIG[vt].maxWeightKg
+      );
 
-    const { data: drivers, error: driversError } = await supabaseAdmin
-      .from("profiles")
-      .select("id, name")
-      .eq("city", input.from_city)
-      .in("vehicle_type", driverVehicleTypes)
-      .neq("id", user.id);
+      const { data: drivers, error: driversError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, name")
+        .eq("city", input.from_city)
+        .in("vehicle_type", driverVehicleTypes)
+        .neq("id", user.id);
 
-    if (driversError) {
-      console.error("Drivers query error:", driversError);
-      // Don't fail the request; load was created
+      if (driversError) {
+        console.error("Drivers query error:", driversError);
+      } else if (drivers) {
+        matchingDrivers.push(...drivers);
+      }
     }
 
-    const matchingDrivers = drivers ?? [];
-
-    // Push notifications via send-notification (DB webhook on-new-load handles direct inserts)
-    const bodyText = `${input.from_city} → ${input.to_city} | ${input.weight_kg} kg`;
-    const fnUrl = `${supabaseUrl}/functions/v1/send-notification`;
-    for (const d of matchingDrivers) {
+    // Push notifications (skip for bos_arac)
+    if (input.vehicle_type !== "bos_arac" && matchingDrivers.length > 0) {
+      const bodyText = `${input.from_city} → ${input.to_city} | ${input.weight_kg} kg`;
+      const fnUrl = `${supabaseUrl}/functions/v1/send-notification`;
+      for (const d of matchingDrivers) {
       try {
         await fetch(fnUrl, {
           method: "POST",

@@ -12,7 +12,7 @@ import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '@/services/supabase';
-import { LoadWithDetails, formatWeight } from '@/types/load';
+import { LoadWithDetails, formatWeight, isBosAracLoad } from '@/types/load';
 
 const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
@@ -36,6 +36,7 @@ function formatPhoneForDial(phone: string): string {
 export default function JobActiveCard({ load, currentUserId, onComplete }: Props) {
   const router = useRouter();
   const [completing, setCompleting] = useState(false);
+  const isBosArac = isBosAracLoad(load);
 
   const isOwner = currentUserId === load.user_id;
   const isDriver = currentUserId === load.assigned_to;
@@ -52,10 +53,10 @@ export default function JobActiveCard({ load, currentUserId, onComplete }: Props
         otherUserId,
         otherUserName: otherName || '',
         otherUserPhone: otherPhone || '',
-        fromCity: load.from_city,
-        fromDistrict: load.from_district,
-        toCity: load.to_city,
-        toDistrict: load.to_district,
+        fromCity: load.from_city ?? '',
+        fromDistrict: load.from_district ?? '',
+        toCity: load.to_city ?? '',
+        toDistrict: load.to_district ?? '',
       },
     });
   };
@@ -145,17 +146,29 @@ export default function JobActiveCard({ load, currentUserId, onComplete }: Props
 
   return (
     <View style={styles.card}>
+      {isBosArac ? (
+        <>
+          <Text style={styles.descriptionMain} numberOfLines={2}>
+            {load.description || 'Boş araç ilanı'}
+          </Text>
+          <View style={styles.metaRow}>
+            <Ionicons name="time-outline" size={14} color="#6B7280" />
+            <Text style={styles.metaText}>{load.ownerName}</Text>
+          </View>
+        </>
+      ) : (
+        <>
       <View style={styles.routeRow}>
         <View style={[styles.dot, styles.dotOrigin]} />
         <Text style={styles.routeText}>
-          {load.from_city} / {load.from_district || load.from_city}
+          {load.from_city ?? ''} / {load.from_district || load.from_city || ''}
         </Text>
       </View>
 
       <View style={styles.routeRow}>
         <View style={[styles.dot, styles.dotDest]} />
         <Text style={styles.routeText}>
-          {load.to_city} / {load.to_district || load.to_city}
+          {load.to_city ?? ''} / {load.to_district || load.to_city || ''}
         </Text>
       </View>
 
@@ -165,6 +178,8 @@ export default function JobActiveCard({ load, currentUserId, onComplete }: Props
           <Text style={styles.metaText}>{formatWeight(load.weight_kg)}</Text>
         </View>
       </View>
+        </>
+      )}
 
       <View style={styles.partyRow}>
         <Text style={styles.partyLabel}>Karşı Taraf:</Text>
@@ -264,6 +279,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 8,
     marginBottom: 12,
+  },
+  descriptionMain: {
+    fontSize: 15,
+    color: '#1F2937',
+    lineHeight: 22,
+    marginBottom: 8,
   },
   metaItem: {
     flexDirection: 'row',

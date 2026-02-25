@@ -23,6 +23,7 @@ import {
   ProfileSnippet,
   formatWeight,
   timeAgo,
+  isBosAracLoad,
 } from '@/types/load';
 
 const PRIMARY = '#2563EB';
@@ -221,6 +222,7 @@ function PostedLoadCard({
   const canModify = ['active', 'has_offers'].includes(load.status);
   const canOpenDetail = ['active', 'has_offers'].includes(load.status);
   const badge = getStatusBadge(load.status);
+  const isBosArac = isBosAracLoad(load);
 
   const handleEdit = () => {
     if (!canModify) {
@@ -263,7 +265,73 @@ function PostedLoadCard({
     if (canOpenDetail) router.push({ pathname: '/my-load-detail', params: { loadId: load.id } });
   };
 
-  const cardContent = (
+  const cardContent = isBosArac ? (
+    <>
+      <View style={styles.cardTopRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.bosAracCardDescription} numberOfLines={2}>
+            {load.description || 'Boş araç ilanı'}
+          </Text>
+        </View>
+        {canModify && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity
+              onPress={handleDelete}
+              style={styles.cardActionBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#DC2626" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.cardMeta}>
+        <View style={[styles.statusPill, { backgroundColor: badge.bg }]}>
+          <Text style={[styles.statusPillText, { color: badge.color }]}>
+            {badge.label}
+          </Text>
+        </View>
+        {canOpenDetail && (contactCount ?? 0) > 0 && (
+          <View style={styles.contactBadge}>
+            <Text style={styles.contactBadgeText}>
+              {contactCount} kişi ilgilendi
+            </Text>
+          </View>
+        )}
+        <View style={styles.metaRight}>
+          <Ionicons
+            name="time-outline"
+            size={14}
+            color={isDelivered ? '#9CA3AF' : '#6B7280'}
+            style={{ marginLeft: 0 }}
+          />
+          <Text style={[styles.metaText, isDelivered && styles.textDimmed]}>
+            {timeAgo(load.created_at)}
+          </Text>
+          <Text style={[styles.metaText, styles.metaOwner, isDelivered && styles.textDimmed]}>
+            {load.ownerName}
+          </Text>
+        </View>
+      </View>
+
+      {isAssigned && load.assignedDriverName ? (
+        <View style={styles.driverRow}>
+          <Ionicons name="person-circle-outline" size={18} color="#6B7280" />
+          <Text style={styles.driverText}>
+            Sürücü: {load.assignedDriverName}
+          </Text>
+        </View>
+      ) : null}
+
+      {isAssigned ? (
+        <View style={styles.waitingRow}>
+          <Ionicons name="hourglass-outline" size={16} color="#9CA3AF" />
+          <Text style={styles.waitingText}>Teslim bekleniyor...</Text>
+        </View>
+      ) : null}
+    </>
+  ) : (
     <>
       <View style={styles.cardTopRow}>
         <View style={{ flex: 1 }}>
@@ -272,7 +340,7 @@ function PostedLoadCard({
             <Text
               style={[styles.routeText, isDelivered && styles.textDimmed]}
             >
-              {load.from_city} / {load.from_district}
+              {load.from_city ?? ''} / {load.from_district ?? ''}
             </Text>
           </View>
           <View style={styles.routeRow}>
@@ -280,7 +348,7 @@ function PostedLoadCard({
             <Text
               style={[styles.routeText, isDelivered && styles.textDimmed]}
             >
-              {load.to_city} / {load.to_district}
+              {load.to_city ?? ''} / {load.to_district ?? ''}
             </Text>
           </View>
         </View>
@@ -389,6 +457,7 @@ function TakenLoadCard({
   const isDelivered = load.status === 'delivered';
   const isAssigned =
     load.status === 'assigned' || load.status === 'in_transit';
+  const isBosArac = isBosAracLoad(load);
 
   const openChat = () => {
     router.push({
@@ -398,10 +467,10 @@ function TakenLoadCard({
         otherUserId: load.user_id,
         otherUserName: load.ownerName,
         otherUserPhone: load.ownerPhone,
-        fromCity: load.from_city,
-        fromDistrict: load.from_district,
-        toCity: load.to_city,
-        toDistrict: load.to_district,
+        fromCity: load.from_city ?? '',
+        fromDistrict: load.from_district ?? '',
+        toCity: load.to_city ?? '',
+        toDistrict: load.to_district ?? '',
       },
     });
   };
@@ -511,16 +580,40 @@ function TakenLoadCard({
 
   return (
     <View style={[styles.card, styles.takenCard, isDelivered && styles.cardDimmed]}>
+      {isBosArac ? (
+        <>
+          <Text style={styles.bosAracCardDescription} numberOfLines={2}>
+            {load.description || 'Boş araç ilanı'}
+          </Text>
+          <View style={[styles.weightTimeRow, styles.takenWeightTimeRow]}>
+            <View style={[styles.statusPill, { backgroundColor: getStatusBadge(load.status).bg }]}>
+              <Text style={[styles.statusPillText, { color: getStatusBadge(load.status).color }]}>
+                {getStatusBadge(load.status).label}
+              </Text>
+            </View>
+            <Ionicons name="time-outline" size={14} color={isDelivered ? '#9CA3AF' : '#6B7280'} style={{ marginLeft: 6 }} />
+            <Text style={[styles.metaText, isDelivered && styles.textDimmed]}>{timeAgo(load.created_at)}</Text>
+          </View>
+          <View style={[styles.ownerSection, styles.takenOwnerSection]}>
+            <Text style={[styles.ownerLabel, styles.takenOwnerLabel]}>İlan Sahibi</Text>
+            <Text style={[styles.ownerName, isDelivered && styles.textDimmed]}>{load.ownerName}</Text>
+            {load.ownerPhone && !isDelivered ? (
+              <Text style={[styles.ownerPhone, styles.takenOwnerPhone]}>{load.ownerPhone}</Text>
+            ) : null}
+          </View>
+        </>
+      ) : (
+        <>
       <View style={[styles.routeRow, styles.takenRouteRow]}>
         <View style={[styles.dot, styles.dotOrigin]} />
         <Text style={[styles.routeText, isDelivered && styles.textDimmed]}>
-          {load.from_city} / {load.from_district}
+          {load.from_city ?? ''} / {load.from_district ?? ''}
         </Text>
       </View>
       <View style={[styles.routeRow, styles.takenRouteRow]}>
         <View style={[styles.dot, styles.dotDest]} />
         <Text style={[styles.routeText, isDelivered && styles.textDimmed]}>
-          {load.to_city} / {load.to_district}
+          {load.to_city ?? ''} / {load.to_district ?? ''}
         </Text>
       </View>
 
@@ -553,6 +646,8 @@ function TakenLoadCard({
           <Text style={[styles.ownerPhone, styles.takenOwnerPhone]}>{load.ownerPhone}</Text>
         ) : null}
       </View>
+        </>
+      )}
 
       {!isDelivered && (
         <View style={[styles.buttonRow, styles.takenButtonRow]}>
@@ -904,6 +999,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
   },
+  bosAracCardDescription: {
+    fontSize: 15,
+    color: '#1F2937',
+    lineHeight: 22,
+  },
   textDimmed: {
     color: '#9CA3AF',
   },
@@ -934,6 +1034,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6B7280',
     marginLeft: 4,
+  },
+  metaOwner: {
+    marginLeft: 10,
+    fontWeight: '600',
+    color: '#374151',
   },
   contactBadge: {
     backgroundColor: '#E0F2FE',

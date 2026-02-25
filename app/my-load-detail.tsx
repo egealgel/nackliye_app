@@ -22,6 +22,7 @@ import {
   LoadWithDetails,
   formatWeight,
   VEHICLE_LABELS,
+  isBosAracLoad,
 } from '@/types/load';
 
 const PRIMARY = '#2563EB';
@@ -127,7 +128,9 @@ export default function MyLoadDetailScreen() {
         message_type: 'system',
       });
 
-      const bodyText = `${load.from_city}${load.from_district ? '/' + load.from_district : ''} → ${load.to_city}${load.to_district ? '/' + load.to_district : ''}`;
+      const bodyText = isBosAracLoad(load)
+        ? (load.description?.slice(0, 50) || 'Boş araç ilanı') + (load.description && load.description.length > 50 ? '…' : '')
+        : `${load.from_city ?? ''}${load.from_district ? '/' + load.from_district : ''} → ${load.to_city ?? ''}${load.to_district ? '/' + load.to_district : ''}`;
       try {
         await supabase.functions.invoke('send-notification', {
           body: {
@@ -159,9 +162,9 @@ export default function MyLoadDetailScreen() {
         otherUserId,
         otherUserName: otherName || '',
         otherUserPhone: otherPhone || '',
-        fromCity: load.from_city,
+        fromCity: load.from_city ?? '',
         fromDistrict: load.from_district ?? '',
-        toCity: load.to_city,
+        toCity: load.to_city ?? '',
         toDistrict: load.to_district ?? '',
       },
     });
@@ -212,7 +215,9 @@ export default function MyLoadDetailScreen() {
   }
 
   const isAssigned = load.status === 'assigned' || load.status === 'in_transit' || load.status === 'delivered';
-  const canAssign = ['active', 'has_offers'].includes(load.status) && load.user_id === currentUserId;
+  const isBosArac = isBosAracLoad(load);
+  const canAssign = !isBosArac && ['active', 'has_offers'].includes(load.status) && load.user_id === currentUserId;
+  const showSenders = ['active', 'has_offers'].includes(load.status) && load.user_id === currentUserId;
   const hasDimensions = load.width_cm || load.length_cm || load.height_cm;
 
   return (
@@ -226,16 +231,47 @@ export default function MyLoadDetailScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
+          {isBosArac ? (
+            <>
+              <View style={styles.descriptionBox}>
+                <Text style={styles.descriptionText}>{load.description || 'Boş araç ilanı'}</Text>
+              </View>
+              <View style={styles.metaRow}>
+                <View
+                  style={[
+                    styles.statusPill,
+                    isAssigned && styles.statusPillAssigned,
+                    !isAssigned && load.status === 'active' && styles.statusPillActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusPillText,
+                      isAssigned && styles.statusPillTextAssigned,
+                      !isAssigned && load.status === 'active' && styles.statusPillTextActive,
+                    ]}
+                  >
+                    {isAssigned ? 'İş Verildi' : load.status === 'has_offers' ? 'Teklif Var' : 'Aktif'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>İlan sahibi</Text>
+                <Text style={styles.detailValue}>{load.ownerName}</Text>
+              </View>
+            </>
+          ) : (
+            <>
           <View style={styles.routeRow}>
             <View style={[styles.dot, styles.dotOrigin]} />
             <Text style={styles.routeText}>
-              {load.from_city} / {load.from_district || load.from_city}
+              {load.from_city ?? ''} / {load.from_district || load.from_city || ''}
             </Text>
           </View>
           <View style={styles.routeRow}>
             <View style={[styles.dot, styles.dotDest]} />
             <Text style={styles.routeText}>
-              {load.to_city} / {load.to_district || load.to_city}
+              {load.to_city ?? ''} / {load.to_district || load.to_city || ''}
             </Text>
           </View>
 
@@ -292,6 +328,8 @@ export default function MyLoadDetailScreen() {
               ))}
             </ScrollView>
           ) : null}
+            </>
+          )}
         </View>
 
         {isAssigned && load.assignedDriverName ? (
@@ -301,7 +339,7 @@ export default function MyLoadDetailScreen() {
           </View>
         ) : null}
 
-        {canAssign ? (
+        {showSenders ? (
           <>
             <Text style={styles.sectionTitle}>İletişim kuranlar</Text>
             {senders.length === 0 ? (
@@ -355,6 +393,7 @@ export default function MyLoadDetailScreen() {
                     <TouchableOpacity style={styles.callBtn} onPress={() => openCall(s.phone)}>
                       <Ionicons name="call" size={18} color="#FFFFFF" />
                     </TouchableOpacity>
+                    {canAssign && (
                     <TouchableOpacity
                       style={styles.assignBtn}
                       onPress={() => handleAssign(s.userId, s.name)}
@@ -366,6 +405,7 @@ export default function MyLoadDetailScreen() {
                         <Text style={styles.assignBtnText}>İş Ver</Text>
                       )}
                     </TouchableOpacity>
+                    )}
                   </View>
                 </View>
               ))

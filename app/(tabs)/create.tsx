@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -28,6 +29,8 @@ import StepReview from '@/components/create-load/StepReview';
 const TOTAL_STEPS = 8;
 const PRIMARY = '#2563EB';
 
+type CreateMode = 'yuk' | 'bos_arac';
+
 const INITIAL_FORM: LoadFormData = {
   fromCity: '',
   fromDistrict: '',
@@ -42,6 +45,8 @@ const INITIAL_FORM: LoadFormData = {
 export default function CreateLoadScreen() {
   const router = useRouter();
   const { session } = useAuth();
+  const [createMode, setCreateMode] = useState<CreateMode>('yuk');
+  const [bosAracText, setBosAracText] = useState('');
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<LoadFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +59,17 @@ export default function CreateLoadScreen() {
   const goBack = useCallback(() => setStep((s) => Math.max(s - 1, 1)), []);
 
   const handleGeri = useCallback(() => {
+    if (createMode === 'bos_arac') {
+      Alert.alert(
+        'İptal et',
+        'Boş araç paylaşımını iptal etmek istediğinize emin misiniz?',
+        [
+          { text: 'Hayır', style: 'cancel' },
+          { text: 'Evet, iptal et', style: 'destructive', onPress: () => router.back() },
+        ],
+      );
+      return;
+    }
     if (step === 1) {
       Alert.alert(
         'İlanı iptal et',
@@ -70,7 +86,7 @@ export default function CreateLoadScreen() {
     } else {
       goBack();
     }
-  }, [step, goBack, router]);
+  }, [createMode, step, goBack, router]);
 
   const updateForm = useCallback((updates: Partial<LoadFormData>) => {
     setFormData((prev) => ({ ...prev, ...updates }));
@@ -85,6 +101,59 @@ export default function CreateLoadScreen() {
     },
     [],
   );
+
+  const handlePublishBosArac = async () => {
+    if (!session?.user?.id) {
+      Alert.alert('Hata', 'Lütfen giriş yapın.');
+      return;
+    }
+    const text = bosAracText.trim();
+    if (!text) {
+      Alert.alert('Uyarı', 'Lütfen boş aracınızı tanımlayın.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('loads')
+        .insert({
+          user_id: session.user.id,
+          from_city: null,
+          from_district: null,
+          to_city: null,
+          to_district: null,
+          weight_kg: null,
+          width_cm: null,
+          length_cm: null,
+          height_cm: null,
+          vehicle_type: 'bos_arac',
+          photos: [],
+          description: text,
+          status: 'active',
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      requestNotificationsAfterFirstAction(session.user.id);
+
+      Alert.alert('Başarılı!', 'Boş araç ilanınız yayınlandı.', [
+        {
+          text: 'Tamam',
+          onPress: () => {
+            setBosAracText('');
+            setIsRedirecting(true);
+            setTimeout(() => router.replace('/(tabs)'), 500);
+          },
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert('Hata', error.message || 'Bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handlePublish = async () => {
     if (!session?.user?.id) {
@@ -280,19 +349,74 @@ export default function CreateLoadScreen() {
           <Ionicons name="arrow-back" size={22} color="#1F2937" />
           <Text style={styles.geriText}>Geri</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yük Oluştur</Text>
+        <Text style={styles.headerTitle}>
+          {createMode === 'bos_arac' ? 'Boş Araç Paylaş' : 'Yük Oluştur'}
+        </Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ProgressBar currentStep={step} totalSteps={TOTAL_STEPS} />
+      <View style={styles.toggleRow}>
+        <TouchableOpacity
+          style={[styles.toggleBtn, createMode === 'yuk' && styles.toggleBtnActive]}
+          onPress={() => setCreateMode('yuk')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.toggleText, createMode === 'yuk' && styles.toggleTextActive]}>
+            Yük Paylaş
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleBtn, createMode === 'bos_arac' && styles.toggleBtnActive]}
+          onPress={() => setCreateMode('bos_arac')}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.toggleText, createMode === 'bos_arac' && styles.toggleTextActive]}>
+            Boş Araç Paylaş
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-      <KeyboardAvoidingView
-        style={styles.content}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={100}
-      >
-        {renderStep()}
-      </KeyboardAvoidingView>
+      {createMode === 'bos_arac' ? (
+        <KeyboardAvoidingView
+          style={styles.content}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={100}
+        >
+          <TextInput
+            style={styles.bosAracInput}
+            placeholder="Boş aracınızı tanımlayın... Örn: İstanbul'dan Ankara'ya boş tır gidiyor, yük alabilirim."
+            placeholderTextColor="#9CA3AF"
+            value={bosAracText}
+            onChangeText={setBosAracText}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+          />
+          <TouchableOpacity
+            style={[styles.paylasButton, isSubmitting && styles.paylasButtonDisabled]}
+            onPress={handlePublishBosArac}
+            disabled={isSubmitting}
+            activeOpacity={0.8}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.paylasButtonText}>Paylaş</Text>
+            )}
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      ) : (
+        <>
+          <ProgressBar currentStep={step} totalSteps={TOTAL_STEPS} />
+          <KeyboardAvoidingView
+            style={styles.content}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={100}
+          >
+            {renderStep()}
+          </KeyboardAvoidingView>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -331,6 +455,56 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  toggleBtnActive: {
+    backgroundColor: PRIMARY,
+  },
+  toggleText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  toggleTextActive: {
+    color: '#FFFFFF',
+  },
+  bosAracInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#1F2937',
+    minHeight: 160,
+    maxHeight: 280,
+  },
+  paylasButton: {
+    backgroundColor: PRIMARY,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  paylasButtonDisabled: {
+    opacity: 0.7,
+  },
+  paylasButtonText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,

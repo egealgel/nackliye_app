@@ -21,7 +21,7 @@ import RoomFilterSheet from '@/components/rooms/RoomFilterSheet';
 
 const PRIMARY = '#2563EB';
 
-const VALID_ROOMS: VehicleType[] = ['minivan', 'kamyonet', 'kamyon', 'tir', 'damperli'];
+const VALID_ROOMS: VehicleType[] = ['minivan', 'kamyonet', 'kamyon', 'tir', 'damperli', 'bos_arac'];
 
 const DEFAULT_FILTERS: RoomFilters = {
   fromCities: [],
