@@ -309,7 +309,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
                                 return;
                               }
                               onDelete?.(load.id);
-                              router.back();
                             },
                           },
                         ],
@@ -404,7 +403,6 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
                             return;
                           }
                           onDelete?.(load.id);
-                          router.back();
                         },
                       },
                     ],
