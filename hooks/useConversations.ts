@@ -28,6 +28,7 @@ export function useConversations(currentUserId: string | undefined) {
     }
 
     setIsLoading(true);
+
     const { data: messages, error } = await supabase
       .from('messages')
       .select('id, sender_id, receiver_id, load_id, content, message_type, created_at, read_at')

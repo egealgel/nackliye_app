@@ -309,9 +309,6 @@ function PostedLoadCard({
           <Text style={[styles.metaText, isDelivered && styles.textDimmed]}>
             {timeAgo(load.created_at)}
           </Text>
-          <Text style={[styles.metaText, styles.metaOwner, isDelivered && styles.textDimmed]}>
-            {load.ownerName}
-          </Text>
         </View>
       </View>
 

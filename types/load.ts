@@ -79,7 +79,10 @@ export function formatRoute(
 
 /** True when load is a "Boş Araç" post (empty vehicle share) — no route/weight. */
 export function isBosAracLoad(load: { vehicle_type?: string | null; from_city?: string | null }): boolean {
-  return load.vehicle_type === 'bos_arac' || load.from_city == null;
+  if (load.vehicle_type === 'bos_arac') return true;
+  if (load.from_city == null) return true;
+  if (typeof load.from_city === 'string' && load.from_city.trim() === '') return true;
+  return false;
 }
 
 // --- DB row types ---
