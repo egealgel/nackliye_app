@@ -162,7 +162,7 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, isBosArac && styles.bosAracCard]}
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.8}
     >
@@ -281,13 +281,13 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
       )}
 
       {expanded && (
-        <View style={styles.details}>
-          <View style={styles.divider} />
+        <View style={[styles.details, isBosArac && styles.bosAracDetails]}>
+          <View style={[styles.divider, isBosArac && styles.bosAracDivider]} />
 
           {isBosArac ? (
             <>
               {isOwner && ['active', 'has_offers'].includes(load.status) && (
-                <View style={styles.ownerActions}>
+                <View style={[styles.ownerActions, styles.bosAracOwnerActions]}>
                   <TouchableOpacity
                     style={[styles.ownerActionBtn, styles.ownerActionBtnDanger]}
                     onPress={() =>
@@ -322,12 +322,8 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
                   </TouchableOpacity>
                 </View>
               )}
-              {load.description ? (
-                <View style={styles.descriptionBox}>
-                  <Text style={styles.descriptionText}>{load.description}</Text>
-                </View>
-              ) : null}
-              <View style={styles.contactLine}>
+              {!isOwner && (
+              <View style={[styles.contactLine, styles.bosAracContactLine]}>
                 <Text style={styles.contactName}>{load.ownerName}</Text>
                 {(load.ownerRatingAvg ?? 0) > 0 && (
                   <View style={styles.starsRow}>
@@ -343,8 +339,9 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
                   </View>
                 )}
               </View>
+              )}
               {!isOwner && (
-                <View style={styles.buttonRow}>
+                <View style={[styles.buttonRow, styles.bosAracButtonRow]}>
                   <TouchableOpacity
                     style={styles.mesajButton}
                     onPress={() =>
@@ -628,18 +625,22 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  bosAracCard: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
   bosAracDescription: {
     fontSize: 15,
     color: '#1F2937',
     lineHeight: 22,
-    marginBottom: 8,
+    marginBottom: 5,
   },
   bosAracMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 5,
   },
   bosAracTimeRow: {
     flexDirection: 'row',
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
   bosAracOwnerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
   bosAracOwnerName: {
     fontSize: 14,
@@ -662,7 +663,7 @@ const styles = StyleSheet.create({
   },
   bosAracChevronRow: {
     alignItems: 'flex-end',
-    marginTop: 6,
+    marginTop: 4,
   },
   routeRow: {
     flexDirection: 'row',
@@ -743,10 +744,16 @@ const styles = StyleSheet.create({
   details: {
     marginTop: 4,
   },
+  bosAracDetails: {
+    marginTop: 2,
+  },
   ownerActions: {
     flexDirection: 'row',
     gap: 10,
     marginBottom: 12,
+  },
+  bosAracOwnerActions: {
+    marginBottom: 5,
   },
   ownerActionBtn: {
     flex: 1,
@@ -771,6 +778,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     marginVertical: 14,
   },
+  bosAracDivider: {
+    marginVertical: 5,
+  },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -792,6 +802,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 10,
+  },
+  bosAracContactLine: {
+    marginBottom: 5,
   },
   contactName: {
     fontSize: 15,
@@ -913,6 +926,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 14,
+  },
+  bosAracButtonRow: {
+    marginTop: 5,
   },
   mesajButton: {
     flex: 1,
