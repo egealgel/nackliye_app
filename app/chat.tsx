@@ -12,6 +12,8 @@ import {
   Linking,
   Image,
   ActivityIndicator,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import ImageViewerModal from '@/components/chat/ImageViewerModal';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -510,7 +512,14 @@ export default function ChatScreen() {
   ) : null;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={{ flex: 1 }}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
@@ -567,16 +576,13 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.key}
           contentContainerStyle={styles.list}
           ListHeaderComponent={listHeader}
+          keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: false })
           }
         />
       )}
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
         <View style={styles.inputRow}>
           <TouchableOpacity
             style={styles.iconBtn}
@@ -631,14 +637,16 @@ export default function ChatScreen() {
             />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
 
       <ImageViewerModal
         visible={!!fullScreenImageUri}
         imageUri={fullScreenImageUri}
         onClose={() => setFullScreenImageUri(null)}
       />
+      </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -885,8 +893,9 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 12,
-    paddingBottom: 24,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',

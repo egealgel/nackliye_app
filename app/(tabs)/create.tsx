@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -335,6 +337,8 @@ export default function CreateLoadScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={{ flex: 1 }}>
       {isRedirecting && (
         <View style={styles.redirectOverlay}>
           <ActivityIndicator size="large" color={PRIMARY} />
@@ -379,8 +383,8 @@ export default function CreateLoadScreen() {
       {createMode === 'bos_arac' ? (
         <KeyboardAvoidingView
           style={styles.content}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={100}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
           <TextInput
             style={styles.bosAracInput}
@@ -410,13 +414,15 @@ export default function CreateLoadScreen() {
           <ProgressBar currentStep={step} totalSteps={TOTAL_STEPS} />
           <KeyboardAvoidingView
             style={styles.content}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={100}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={0}
           >
             {renderStep()}
           </KeyboardAvoidingView>
         </>
       )}
+      </View>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
