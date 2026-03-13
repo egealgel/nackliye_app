@@ -594,9 +594,6 @@ function TakenLoadCard({
           <View style={[styles.ownerSection, styles.takenOwnerSection]}>
             <Text style={[styles.ownerLabel, styles.takenOwnerLabel]}>İlan Sahibi</Text>
             <Text style={[styles.ownerName, isDelivered && styles.textDimmed]}>{load.ownerName}</Text>
-            {load.ownerPhone && !isDelivered ? (
-              <Text style={[styles.ownerPhone, styles.takenOwnerPhone]}>{load.ownerPhone}</Text>
-            ) : null}
           </View>
         </>
       ) : (
@@ -639,9 +636,6 @@ function TakenLoadCard({
         <Text style={[styles.ownerName, isDelivered && styles.textDimmed]}>
           {load.ownerName}
         </Text>
-        {load.ownerPhone && !isDelivered ? (
-          <Text style={[styles.ownerPhone, styles.takenOwnerPhone]}>{load.ownerPhone}</Text>
-        ) : null}
       </View>
         </>
       )}
