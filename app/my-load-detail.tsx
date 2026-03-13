@@ -109,6 +109,28 @@ export default function MyLoadDetailScreen() {
     if (!loadId || !load) return;
     setAssigning(driverId);
     try {
+      // Re-fetch the load to avoid assigning a job that's already assigned/delivered
+      const { data: fresh, error: freshError } = await supabase
+        .from('loads')
+        .select('id, status')
+        .eq('id', load.id)
+        .single();
+
+      if (freshError || !fresh) {
+        Alert.alert('Hata', 'Yük bilgisi güncellenirken bir hata oluştu.');
+        return;
+      }
+
+      if (fresh.status === 'assigned' || fresh.status === 'delivered') {
+        Alert.alert(
+          'İş Verilemez',
+          'Bu iş zaten verilmiş veya teslim edilmiş. Aynı işe tekrar iş veremezsiniz.'
+        );
+        await loadData();
+        refreshSenders();
+        return;
+      }
+
       const { error } = await supabase
         .from('loads')
         .update({
