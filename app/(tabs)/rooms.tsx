@@ -61,7 +61,17 @@ export default function RoomsScreen() {
 
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
-  const { loads, isLoading, refresh, removeLoad } = useRoomLoads(selectedRoom, filters);
+  // For Boş Araç room, ignore all filters (only local text search applies),
+  // but preserve the actual filter state to reuse when switching back.
+  const effectiveFiltersForLoads: RoomFilters =
+    selectedRoom === 'bos_arac'
+      ? { ...DEFAULT_FILTERS, statusFilter: 'all' }
+      : filters;
+
+  const { loads, isLoading, refresh, removeLoad } = useRoomLoads(
+    selectedRoom,
+    effectiveFiltersForLoads,
+  );
   const { counts, refresh: refreshCounts } = useRoomCounts(filters);
   const [bosAracSearch, setBosAracSearch] = useState('');
 
