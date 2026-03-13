@@ -418,6 +418,12 @@ export default function ChatScreen() {
       return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
+    const timeLabel = new Date(m.created_at).toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+
     return (
       <View style={[styles.bubbleWrap, isMe && styles.bubbleWrapMe]}>
         <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
@@ -449,14 +455,19 @@ export default function ChatScreen() {
             </TouchableOpacity>
           ) : null}
           {!isDocument && m.content ? (
-            <Text style={[styles.bubbleText, isMe && styles.bubbleTextMe]}>{m.content}</Text>
+            <Text
+              style={[
+                styles.bubbleText,
+                isMe && styles.bubbleTextMe,
+                styles.bubbleTextWithMeta,
+              ]}
+            >
+              {m.content}
+            </Text>
           ) : null}
           <View style={styles.bubbleFooter}>
             <Text style={[styles.bubbleTime, isMe && styles.bubbleTimeMe]}>
-              {new Date(m.created_at).toLocaleTimeString('tr-TR', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {timeLabel}
             </Text>
             {isMe && (
               <View style={styles.checkmarksWrapper}>
@@ -766,6 +777,7 @@ const styles = StyleSheet.create({
   bubble: {
     padding: 12,
     borderRadius: 16,
+    position: 'relative',
   },
   bubbleMe: {
     backgroundColor: '#2563EB',
@@ -835,11 +847,16 @@ const styles = StyleSheet.create({
   bubbleTextMe: {
     color: '#FFFFFF',
   },
+  bubbleTextWithMeta: {
+    paddingRight: 52,
+    paddingBottom: 2,
+  },
   bubbleFooter: {
+    position: 'absolute',
+    right: 8,
+    bottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    gap: 4,
   },
   bubbleTime: {
     fontSize: 11,
@@ -851,7 +868,7 @@ const styles = StyleSheet.create({
   checkmarksWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 4,
+    marginLeft: 2,
   },
   checkmark: {
     fontSize: 10,
