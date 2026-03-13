@@ -495,12 +495,6 @@ function TakenLoadCard({
         .insert(payload)
         .select('id, sender_id, receiver_id, load_id, message_type, created_at')
         .single();
-      console.log('[jobs TakenLoadCard] call_attempt insert', {
-        payload,
-        ok: !insertError,
-        data: insertData,
-        error: insertError?.message ?? null,
-      });
     }
     const tel = formatPhoneForDial(phone);
     if (!tel) {

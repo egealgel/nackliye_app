@@ -27,17 +27,7 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
       .eq('receiver_id', loadOwnerId)
       .in('message_type', ['text', 'image', 'document', 'call_attempt']);
 
-    console.log('[useLoadMessageSenders] İş Ver query', {
-      loadId,
-      loadOwnerId,
-      queryFilter,
-      rowCount: messages?.length ?? 0,
-      error: queryError?.message ?? null,
-      rows: messages ?? [],
-    });
-
     if (queryError) {
-      console.warn('[useLoadMessageSenders] query error', queryError);
       setSenders([]);
       setIsLoading(false);
       return;
@@ -60,12 +50,6 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
       }
     }
 
-    console.log('[useLoadMessageSenders] derived', {
-      uniqueSenderIds,
-      hasMessageBySender: Object.fromEntries(hasMessageBySender),
-      hasCallAttemptBySender: Object.fromEntries(hasCallAttemptBySender),
-    });
-
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, name, phone, vehicle_type, rating_avg, city')
@@ -82,8 +66,6 @@ export function useLoadMessageSenders(loadId: string | null, loadOwnerId: string
       hasMessage: hasMessageBySender.get(p.id) ?? false,
       hasCallAttempt: hasCallAttemptBySender.get(p.id) ?? false,
     }));
-
-    console.log('[useLoadMessageSenders] result senders', result.length, result);
 
     setSenders(result);
     setIsLoading(false);

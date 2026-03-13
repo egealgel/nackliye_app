@@ -125,17 +125,11 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
         content: '📞 Arama yapıldı',
         message_type: 'call_attempt',
       };
-      const { data: insertData, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('messages')
         .insert(payload)
-        .select('id, sender_id, receiver_id, load_id, message_type, created_at')
+        .select('id')
         .single();
-      console.log('[RoomLoadCard] call_attempt insert', {
-        payload,
-        ok: !insertError,
-        data: insertData,
-        error: insertError?.message ?? null,
-      });
     }
     await openCall(phone || '');
   };

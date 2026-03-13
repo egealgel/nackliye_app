@@ -36,15 +36,7 @@ export async function pickAndUploadPhoto(
     uri = `file://${uri}`;
   }
 
-  try {
-    const originalInfo = await FileSystem.getInfoAsync(uri);
-    console.log('[pickAndUploadPhoto] original image:', {
-      uri,
-      size: originalInfo.size,
-    });
-  } catch {
-    // Ignore size errors; best-effort logging only
-  }
+  // Best-effort file size logging removed in production cleanup
 
   const manipulated = await ImageManipulator.manipulateAsync(
     uri,
@@ -52,15 +44,7 @@ export async function pickAndUploadPhoto(
     { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
   );
 
-  try {
-    const compressedInfo = await FileSystem.getInfoAsync(manipulated.uri);
-    console.log('[pickAndUploadPhoto] compressed image:', {
-      uri: manipulated.uri,
-      size: compressedInfo.size,
-    });
-  } catch {
-    // Ignore size errors; best-effort logging only
-  }
+  // Best-effort file size logging removed in production cleanup
 
   const fileName = `${userId}/${Date.now()}_${Math.random()
     .toString(36)
@@ -93,7 +77,6 @@ export async function pickAndUploadPhoto(
     const { data, error } = await timedUpload;
 
     if (error) {
-      console.log('[pickAndUploadPhoto] upload error:', error);
       throw error;
     }
 
@@ -102,9 +85,6 @@ export async function pickAndUploadPhoto(
       .getPublicUrl(data.path);
 
     return urlData.publicUrl;
-  } catch (err) {
-    console.log('[pickAndUploadPhoto] upload failed:', err);
-    throw err;
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
