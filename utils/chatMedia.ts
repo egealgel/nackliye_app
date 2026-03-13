@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { supabase } from '@/services/supabase';
 
 const BUCKET = 'chat-media';
@@ -27,34 +28,86 @@ export async function pickAndUploadPhoto(
 
   if (result.canceled || !result.assets[0]) return null;
 
-  const uri = result.assets[0].uri;
+  const asset = result.assets[0];
+  let uri = asset.uri;
+
+  // Ensure we handle file:// URIs consistently
+  if (!uri.startsWith('file://')) {
+    uri = `file://${uri}`;
+  }
+
+  try {
+    const originalInfo = await FileSystem.getInfoAsync(uri);
+    console.log('[pickAndUploadPhoto] original image:', {
+      uri,
+      size: originalInfo.size,
+    });
+  } catch {
+    // Ignore size errors; best-effort logging only
+  }
 
   const manipulated = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: 800 } }],
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+    [{ resize: { width: 1200 } }],
+    { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
   );
 
-  const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+  try {
+    const compressedInfo = await FileSystem.getInfoAsync(manipulated.uri);
+    console.log('[pickAndUploadPhoto] compressed image:', {
+      uri: manipulated.uri,
+      size: compressedInfo.size,
+    });
+  } catch {
+    // Ignore size errors; best-effort logging only
+  }
+
+  const fileName = `${userId}/${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2)}.jpg`;
 
   const response = await fetch(manipulated.uri);
   const blob = await response.blob();
   const arrayBuffer = await new Response(blob).arrayBuffer();
 
-  const { data, error } = await supabase.storage
+  const uploadPromise = supabase.storage
     .from(BUCKET)
     .upload(fileName, arrayBuffer, {
       contentType: 'image/jpeg',
       upsert: false,
     });
 
-  if (error) throw error;
+  const timeoutMs = 30000;
+  let timeoutId: NodeJS.Timeout | undefined;
 
-  const { data: urlData } = supabase.storage
-    .from(BUCKET)
-    .getPublicUrl(data.path);
+  const timedUpload = new Promise<typeof uploadPromise extends Promise<infer T> ? T : never>(
+    (resolve, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('Fotoğraf yükleme zaman aşımına uğradı (30s).'));
+      }, timeoutMs);
+      uploadPromise.then(resolve).catch(reject);
+    }
+  );
 
-  return urlData.publicUrl;
+  try {
+    const { data, error } = await timedUpload;
+
+    if (error) {
+      console.log('[pickAndUploadPhoto] upload error:', error);
+      throw error;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from(BUCKET)
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  } catch (err) {
+    console.log('[pickAndUploadPhoto] upload failed:', err);
+    throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 export async function pickAndUploadDocument(
