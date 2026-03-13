@@ -275,6 +275,20 @@ export function useRoomCounts(filters?: RoomFilters) {
       data.forEach((row) => {
         map[row.vehicle_type] = (map[row.vehicle_type] || 0) + 1;
       });
+
+      // Special case: Boş Araç badge should always show unfiltered
+      // count of bos_arac loads with status IN ('active', 'has_offers'),
+      // regardless of any filters.
+      const { data: bosData } = await supabase
+        .from('loads')
+        .select('vehicle_type')
+        .eq('vehicle_type', 'bos_arac')
+        .in('status', ['active', 'has_offers']);
+
+      if (bosData) {
+        map['bos_arac'] = bosData.length;
+      }
+
       setCounts(map);
       return;
     }
@@ -282,6 +296,11 @@ export function useRoomCounts(filters?: RoomFilters) {
     const statusList = getStatusList(filters.statusFilter);
     const dateGte = getDateFilterGte(filters.dateFilter);
 
+    // For filtered mode:
+    // - Non-Boş Araç rooms: apply filters (from/to/date/status)
+    // - Boş Araç badge: always show total unfiltered active bos_arac count
+
+    // 1) Filtered query for all vehicle types EXCEPT bos_arac
     let query = supabase
       .from('loads')
       .select('vehicle_type, from_city, to_city, status, created_at, updated_at')
@@ -302,16 +321,35 @@ export function useRoomCounts(filters?: RoomFilters) {
       }
     }
 
-    const { data, error } = await query;
-    if (error || !data) {
-      return;
-    }
+    // Exclude bos_arac from filtered query; we'll handle it separately
+    query = query.neq('vehicle_type', 'bos_arac');
 
-    const map: Record<string, number> = {};
-    data.forEach((row) => {
-      map[row.vehicle_type] = (map[row.vehicle_type] || 0) + 1;
-    });
-    setCounts(map);
+    const [filteredRes, bosRes] = await Promise.all([
+      query,
+      supabase
+        .from('loads')
+        .select('vehicle_type')
+        .eq('vehicle_type', 'bos_arac')
+        .in('status', ['active', 'has_offers']),
+    ]);
+
+    const data = filteredRes.data;
+    const error = filteredRes.error;
+    const bosData = bosRes.data;
+
+    if (!error && data) {
+      const map: Record<string, number> = {};
+      data.forEach((row) => {
+        map[row.vehicle_type] = (map[row.vehicle_type] || 0) + 1;
+      });
+
+      // Add unfiltered Boş Araç count (always active-only, ignoring filters)
+      if (bosData) {
+        map['bos_arac'] = bosData.length;
+      }
+
+      setCounts(map);
+    }
   }, [filters]);
 
   useEffect(() => {
