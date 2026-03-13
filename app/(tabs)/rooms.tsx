@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -40,12 +41,17 @@ export default function RoomsScreen() {
   const handleRoomSelect = useCallback((room: VehicleType) => {
     userPickedRoom.current = true;
     setSelectedRoom(room);
+    // Clear Boş Araç search when switching away
+    if (room !== 'bos_arac') {
+      setBosAracSearch('');
+    }
   }, []);
 
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const { loads, isLoading, refresh, removeLoad } = useRoomLoads(selectedRoom, filters);
   const { counts, refresh: refreshCounts } = useRoomCounts();
+  const [bosAracSearch, setBosAracSearch] = useState('');
 
   const hasAnyFilter =
     filters.fromCities.length > 0 ||
@@ -90,6 +96,16 @@ export default function RoomsScreen() {
 
   const keyExtractor = useCallback((item: LoadWithDetails) => item.id, []);
 
+  const isBosAracRoom = selectedRoom === 'bos_arac';
+  const filteredLoads =
+    isBosAracRoom && bosAracSearch.trim()
+      ? loads.filter((l) =>
+          (l.description || '')
+            .toLowerCase()
+            .includes(bosAracSearch.trim().toLowerCase()),
+        )
+      : loads;
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -98,18 +114,20 @@ export default function RoomsScreen() {
         </Text>
         <View style={styles.titleRow}>
           <Text style={styles.title}>Odalar</Text>
-          <TouchableOpacity
-            style={styles.filterIconBtn}
-            onPress={() => setFilterSheetVisible(true)}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            <MaterialCommunityIcons
-              name="filter-variant"
-              size={24}
-              color={hasAnyFilter ? PRIMARY : '#374151'}
-            />
-            {hasAnyFilter && <View style={styles.filterBadge} />}
-          </TouchableOpacity>
+          {!isBosAracRoom && (
+            <TouchableOpacity
+              style={styles.filterIconBtn}
+              onPress={() => setFilterSheetVisible(true)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <MaterialCommunityIcons
+                name="filter-variant"
+                size={24}
+                color={hasAnyFilter ? PRIMARY : '#374151'}
+              />
+              {hasAnyFilter && <View style={styles.filterBadge} />}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -119,7 +137,36 @@ export default function RoomsScreen() {
         counts={counts}
       />
 
-      {hasAnyFilter && (
+      {isBosAracRoom && (
+        <View style={styles.searchRow}>
+          <Ionicons
+            name="search-outline"
+            size={18}
+            color="#9CA3AF"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            value={bosAracSearch}
+            onChangeText={setBosAracSearch}
+            placeholder="Ara... (örn: İstanbul Ankara tır)"
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {bosAracSearch.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setBosAracSearch('')}
+              style={styles.clearIconBtn}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {!isBosAracRoom && hasAnyFilter && (
         <TouchableOpacity
           style={styles.filtreAktifRow}
           onPress={() => setFilterSheetVisible(true)}
@@ -147,7 +194,7 @@ export default function RoomsScreen() {
         </View>
       ) : (
         <FlatList
-          data={loads}
+          data={filteredLoads}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.list}
@@ -213,6 +260,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: PRIMARY,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 20,
+    marginTop: 4,
+    marginBottom: 4,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchIcon: {
+    marginRight: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#111827',
+    paddingVertical: 0,
+  },
+  clearIconBtn: {
+    marginLeft: 4,
   },
   center: {
     flex: 1,
