@@ -2,9 +2,12 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { UnreadCountProvider } from '@/lib/UnreadCountContext';
 import { initNotificationListeners } from '@/services/notifications';
+
+SplashScreen.preventAutoHideAsync();
 
 function NotificationsInit() {
   const { session } = useAuth();
