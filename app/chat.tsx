@@ -459,14 +459,25 @@ export default function ChatScreen() {
               })}
             </Text>
             {isMe && (
-              <Text
-                style={[
-                  styles.checkmarks,
-                  m.read_at ? styles.checkmarksRead : styles.checkmarksSent,
-                ]}
-              >
-                ✓✓
-              </Text>
+              <View style={styles.checkmarksWrapper}>
+                <Text
+                  style={[
+                    styles.checkmark,
+                    m.read_at ? styles.checkmarkRead : styles.checkmarkUnread,
+                  ]}
+                >
+                  ✓
+                </Text>
+                <Text
+                  style={[
+                    styles.checkmark,
+                    m.read_at ? styles.checkmarkRead : styles.checkmarkUnread,
+                    styles.checkmarkSecond,
+                  ]}
+                >
+                  ✓
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -837,15 +848,22 @@ const styles = StyleSheet.create({
   bubbleTimeMe: {
     color: 'rgba(255,255,255,0.8)',
   },
-  checkmarks: {
+  checkmarksWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  checkmark: {
     fontSize: 10,
-    marginLeft: 2,
   },
-  checkmarksSent: {
-    color: 'rgba(255,255,255,0.8)',
+  checkmarkUnread: {
+    color: '#9CA3AF',
   },
-  checkmarksRead: {
-    color: '#60A5FA',
+  checkmarkRead: {
+    color: '#22C55E',
+  },
+  checkmarkSecond: {
+    marginLeft: -4,
   },
   inputRow: {
     flexDirection: 'row',
