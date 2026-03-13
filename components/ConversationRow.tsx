@@ -53,12 +53,18 @@ export default function ConversationRow({ conversation, onHide }: Props) {
   const router = useRouter();
   const swipeableRef = useRef<Swipeable | null>(null);
 
-  const routeStr = routeSubtitle(
-    conversation.fromCity,
-    conversation.fromDistrict,
-    conversation.toCity,
-    conversation.toDistrict
-  );
+  const isBosArac =
+    conversation.loadVehicleType === 'bos_arac' ||
+    !conversation.fromCity;
+
+  const subtitle = isBosArac
+    ? (conversation.loadDescription || '').split('\n')[0]
+    : routeSubtitle(
+        conversation.fromCity,
+        conversation.fromDistrict,
+        conversation.toCity,
+        conversation.toDistrict
+      );
 
   const openChat = () => {
     router.push({
@@ -141,9 +147,9 @@ export default function ConversationRow({ conversation, onHide }: Props) {
           </Text>
           <Text style={styles.time}>{timeStr}</Text>
         </View>
-        {routeStr ? (
+        {subtitle ? (
           <Text style={styles.routeSubtitle} numberOfLines={1}>
-            {routeStr}
+            {subtitle}
           </Text>
         ) : null}
         {conversation.lastMessage ? (

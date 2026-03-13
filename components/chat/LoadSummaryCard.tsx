@@ -19,6 +19,8 @@ type Props = {
   toDistrict: string;
   weightKg: number;
   status: string;
+  description?: string | null;
+  vehicleType?: string | null;
 };
 
 export default function LoadSummaryCard({
@@ -28,35 +30,70 @@ export default function LoadSummaryCard({
   toDistrict,
   weightKg,
   status,
+  description,
+  vehicleType,
 }: Props) {
+  const isBosArac =
+    vehicleType === 'bos_arac' ||
+    !fromCity;
+
   const fromD = fromDistrict || fromCity || '';
   const toD = toDistrict || toCity || '';
   return (
     <View style={styles.card}>
-      <RouteDisplay
-        fromCity={fromCity}
-        fromDistrict={fromD}
-        toCity={toCity}
-        toDistrict={toD}
-      />
-      <View style={styles.meta}>
-        <Text style={styles.weight}>{formatWeight(weightKg)}</Text>
-        <View
-          style={[
-            styles.statusBadge,
-            status === 'active' && styles.statusBadgeActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.statusText,
-              status === 'active' && styles.statusTextActive,
-            ]}
-          >
-            {STATUS_LABELS[status] || status}
-          </Text>
-        </View>
-      </View>
+      {isBosArac ? (
+        <>
+          {description ? (
+            <Text style={styles.description} numberOfLines={1}>
+              {description}
+            </Text>
+          ) : null}
+          <View style={styles.meta}>
+            <View
+              style={[
+                styles.statusBadge,
+                status === 'active' && styles.statusBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  status === 'active' && styles.statusTextActive,
+                ]}
+              >
+                {STATUS_LABELS[status] || status}
+              </Text>
+            </View>
+          </View>
+        </>
+      ) : (
+        <>
+          <RouteDisplay
+            fromCity={fromCity}
+            fromDistrict={fromD}
+            toCity={toCity}
+            toDistrict={toD}
+          />
+          <View style={styles.meta}>
+            <Text style={styles.weight}>{formatWeight(weightKg)}</Text>
+            <View
+              style={[
+                styles.statusBadge,
+                status === 'active' && styles.statusBadgeActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  status === 'active' && styles.statusTextActive,
+                ]}
+              >
+                {STATUS_LABELS[status] || status}
+              </Text>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -67,6 +104,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+  },
+  description: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1F2937',
   },
   meta: {
     flexDirection: 'row',

@@ -11,6 +11,10 @@ export type Conversation = {
   fromDistrict: string;
   toCity: string;
   toDistrict: string;
+  /** Load description (used for Boş Araç conversations where route is empty) */
+  loadDescription: string;
+  /** Load vehicle type (e.g. bos_arac) */
+  loadVehicleType: string | null;
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -51,7 +55,10 @@ export function useConversations(currentUserId: string | undefined) {
       grouped.get(key)!.push(m);
     }
 
-    const convos: Omit<Conversation, 'otherUserName' | 'otherUserPhone'>[] = [];
+    const convos: Omit<
+      Conversation,
+      'otherUserName' | 'otherUserPhone' | 'loadDescription' | 'loadVehicleType'
+    >[] = [];
     const otherIds = new Set<string>();
     const loadIds = new Set<string>();
 
@@ -87,6 +94,8 @@ export function useConversations(currentUserId: string | undefined) {
         fromDistrict: '',
         toCity: '',
         toDistrict: '',
+        loadDescription: '',
+        loadVehicleType: null,
         lastMessage: formatLastMessagePreview(latest),
         lastMessageAt: latest.created_at,
         unreadCount,
@@ -97,7 +106,10 @@ export function useConversations(currentUserId: string | undefined) {
 
     const [profilesRes, loadsRes] = await Promise.all([
       supabase.from('profiles').select('id, name, phone').in('id', [...otherIds]),
-      supabase.from('loads').select('id, from_city, from_district, to_city, to_district').in('id', [...loadIds]),
+      supabase
+        .from('loads')
+        .select('id, from_city, from_district, to_city, to_district, description, vehicle_type')
+        .in('id', [...loadIds]),
     ]);
 
     const profileMap = new Map((profilesRes.data || []).map((p) => [p.id, p]));
@@ -114,6 +126,8 @@ export function useConversations(currentUserId: string | undefined) {
         fromDistrict: l?.from_district || '',
         toCity: l?.to_city || '',
         toDistrict: l?.to_district || '',
+        loadDescription: (l?.description as string | null) || '',
+        loadVehicleType: (l?.vehicle_type as string | null) ?? null,
       };
     });
 

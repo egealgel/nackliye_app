@@ -42,10 +42,12 @@ type Message = {
 type LoadInfo = {
   weight_kg: number;
   status: string;
-  from_city: string;
-  from_district: string;
-  to_city: string;
-  to_district: string;
+  from_city: string | null;
+  from_district: string | null;
+  to_city: string | null;
+  to_district: string | null;
+  vehicle_type: string | null;
+  description: string | null;
 };
 
 type ListItem =
@@ -124,7 +126,7 @@ export default function ChatScreen() {
     if (!loadId) return;
     const { data } = await supabase
       .from('loads')
-      .select('weight_kg, status, from_city, from_district, to_city, to_district')
+      .select('weight_kg, status, from_city, from_district, to_city, to_district, vehicle_type, description')
       .eq('id', loadId)
       .single();
     if (data) setLoadInfo(data);
@@ -474,12 +476,14 @@ export default function ChatScreen() {
 
   const listHeader = loadInfo ? (
     <LoadSummaryCard
-      fromCity={loadInfo.from_city}
+      fromCity={loadInfo.from_city || ''}
       fromDistrict={loadInfo.from_district || ''}
-      toCity={loadInfo.to_city}
+      toCity={loadInfo.to_city || ''}
       toDistrict={loadInfo.to_district || ''}
       weightKg={loadInfo.weight_kg}
       status={loadInfo.status}
+      description={loadInfo.description}
+      vehicleType={loadInfo.vehicle_type}
     />
   ) : null;
 
