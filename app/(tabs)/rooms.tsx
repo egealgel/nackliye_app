@@ -50,7 +50,7 @@ export default function RoomsScreen() {
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
   const [filterSheetVisible, setFilterSheetVisible] = useState(false);
   const { loads, isLoading, refresh, removeLoad } = useRoomLoads(selectedRoom, filters);
-  const { counts, refresh: refreshCounts } = useRoomCounts();
+  const { counts, refresh: refreshCounts } = useRoomCounts(filters);
   const [bosAracSearch, setBosAracSearch] = useState('');
 
   const hasAnyFilter =

@@ -258,23 +258,61 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
   return { loads, isLoading, refresh: fetchLoads, removeLoad };
 }
 
-export function useRoomCounts() {
+export function useRoomCounts(filters?: RoomFilters) {
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   const fetchCounts = useCallback(async () => {
-    const { data } = await supabase
-      .from('loads')
-      .select('vehicle_type')
-      .eq('status', 'active');
+    // If no filters provided, default to active-only counts (previous behavior)
+    if (!filters) {
+      const { data } = await supabase
+        .from('loads')
+        .select('vehicle_type')
+        .eq('status', 'active');
 
-    if (!data) return;
+      if (!data) return;
+
+      const map: Record<string, number> = {};
+      data.forEach((row) => {
+        map[row.vehicle_type] = (map[row.vehicle_type] || 0) + 1;
+      });
+      setCounts(map);
+      return;
+    }
+
+    const statusList = getStatusList(filters.statusFilter);
+    const dateGte = getDateFilterGte(filters.dateFilter);
+
+    let query = supabase
+      .from('loads')
+      .select('vehicle_type, from_city, to_city, status, created_at, updated_at')
+      .in('status', statusList);
+
+    if (filters.fromCities.length > 0) {
+      query = query.in('from_city', filters.fromCities);
+    }
+    if (filters.toCities.length > 0) {
+      query = query.in('to_city', filters.toCities);
+    }
+
+    if (dateGte) {
+      if (filters.statusFilter === 'assigned') {
+        query = query.gte('updated_at', dateGte);
+      } else {
+        query = query.or(`created_at.gte.${dateGte},updated_at.gte.${dateGte}`);
+      }
+    }
+
+    const { data, error } = await query;
+    if (error || !data) {
+      return;
+    }
 
     const map: Record<string, number> = {};
     data.forEach((row) => {
       map[row.vehicle_type] = (map[row.vehicle_type] || 0) + 1;
     });
     setCounts(map);
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     fetchCounts();
