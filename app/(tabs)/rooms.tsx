@@ -32,6 +32,18 @@ const DEFAULT_FILTERS: RoomFilters = {
   statusFilter: 'active',
 };
 
+function normalizeTr(str: string): string {
+  return str
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'ı')
+    .replace(/Ş/g, 'ş')
+    .replace(/Ç/g, 'ç')
+    .replace(/Ğ/g, 'ğ')
+    .replace(/Ü/g, 'ü')
+    .replace(/Ö/g, 'ö')
+    .toLocaleLowerCase('tr-TR');
+}
+
 export default function RoomsScreen() {
   const { profile, session, refreshProfile } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<VehicleType>('minivan');
@@ -100,9 +112,9 @@ export default function RoomsScreen() {
   const filteredLoads =
     isBosAracRoom && bosAracSearch.trim()
       ? loads.filter((l) =>
-          (l.description || '')
-            .toLowerCase()
-            .includes(bosAracSearch.trim().toLowerCase()),
+          normalizeTr(l.description || '').includes(
+            normalizeTr(bosAracSearch.trim()),
+          ),
         )
       : loads;
 
