@@ -471,8 +471,10 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
             </>
           )}
 
-          {/* --- Contact: owner name + stars (above action buttons) --- */}
-          {(!isAssigned && !isOwner) || hasCounterparty ? (
+          {/* --- Contact: owner name + stars (above action buttons)
+               For assigned loads, when owner sees the \"İş Verildi — {driver}\" badge above,
+               avoid repeating the driver name + stars directly below. --- */}
+          {((!isAssigned && !isOwner) || (hasCounterparty && !(isOwner && isAssigned))) ? (
             <View style={styles.contactLine}>
               <Text style={styles.contactName}>
                 {!isAssigned && !isOwner
