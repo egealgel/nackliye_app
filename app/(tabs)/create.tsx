@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
@@ -44,6 +45,22 @@ const INITIAL_FORM: LoadFormData = {
   description: '',
 };
 
+function resetFormState(
+  setStep: (n: number) => void,
+  setFormData: (d: LoadFormData) => void,
+  setBosAracText: (s: string) => void,
+  setCreateMode: (m: CreateMode) => void,
+  setIsSubmitting: (b: boolean) => void,
+  setIsRedirecting: (b: boolean) => void,
+) {
+  setStep(1);
+  setFormData(INITIAL_FORM);
+  setBosAracText('');
+  setCreateMode('yuk');
+  setIsSubmitting(false);
+  setIsRedirecting(false);
+}
+
 export default function CreateLoadScreen() {
   const router = useRouter();
   const { session } = useAuth();
@@ -53,6 +70,14 @@ export default function CreateLoadScreen() {
   const [formData, setFormData] = useState<LoadFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Clear loading/redirect state when screen is focused (fixes spinner when reopening after a previous create)
+  useFocusEffect(
+    useCallback(() => {
+      setIsRedirecting(false);
+      setIsSubmitting(false);
+    }, []),
+  );
 
   const goNext = useCallback(
     () => setStep((s) => Math.min(s + 1, TOTAL_STEPS)),
@@ -144,7 +169,14 @@ export default function CreateLoadScreen() {
         {
           text: 'Tamam',
           onPress: () => {
-            setBosAracText('');
+            resetFormState(
+              setStep,
+              setFormData,
+              setBosAracText,
+              setCreateMode,
+              setIsSubmitting,
+              setIsRedirecting,
+            );
             setIsRedirecting(true);
             setTimeout(() => router.replace('/(tabs)'), 500);
           },
@@ -222,12 +254,16 @@ export default function CreateLoadScreen() {
         {
           text: 'Tamam',
           onPress: () => {
-            setStep(1);
-            setFormData(INITIAL_FORM);
+            resetFormState(
+              setStep,
+              setFormData,
+              setBosAracText,
+              setCreateMode,
+              setIsSubmitting,
+              setIsRedirecting,
+            );
             setIsRedirecting(true);
-            setTimeout(() => {
-              router.replace('/(tabs)');
-            }, 500);
+            setTimeout(() => router.replace('/(tabs)'), 500);
           },
         },
       ]);
