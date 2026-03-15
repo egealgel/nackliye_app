@@ -36,7 +36,13 @@ export default function StepReview({
   const canPublish = !isSubmitting && !hasUploadingPhotos;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <Text style={styles.title}>Özet</Text>
       <Text style={styles.subtitle}>İlanınızı kontrol edin</Text>
 
@@ -103,6 +109,8 @@ export default function StepReview({
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.photosRow}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
             >
               {formData.photos.map((photo, i) => (
                 <View key={`${photo.uri}-${i}`} style={styles.photoWrapper}>
@@ -154,6 +162,9 @@ export default function StepReview({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

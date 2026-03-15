@@ -44,7 +44,13 @@ export default function StepWeight({ weight, onWeightChange, onNext }: Props) {
   const currentWeight = parseInt(inputValue, 10) || 0;
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <Text style={styles.title}>Kaç kilo?</Text>
       <Text style={styles.subtitle}>Yükünüzün ağırlığını girin</Text>
 
@@ -104,6 +110,9 @@ export default function StepWeight({ weight, onWeightChange, onNext }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

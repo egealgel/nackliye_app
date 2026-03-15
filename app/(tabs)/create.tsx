@@ -9,8 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
-  Keyboard,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -373,7 +371,6 @@ export default function CreateLoadScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
       <View style={{ flex: 1 }}>
       {isRedirecting && (
         <View style={styles.redirectOverlay}>
@@ -458,7 +455,6 @@ export default function CreateLoadScreen() {
         </>
       )}
       </View>
-      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }

@@ -60,7 +60,13 @@ export default function StepDimensions({
   const hasAnyDimension = parseNum(w) || parseNum(l) || parseNum(h);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <Text style={styles.title}>Boyut</Text>
       <Text style={styles.subtitle}>
         Yükünüzün boyutlarını girin (isteğe bağlı)
@@ -144,6 +150,9 @@ export default function StepDimensions({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

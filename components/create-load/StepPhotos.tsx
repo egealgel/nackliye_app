@@ -190,7 +190,13 @@ export default function StepPhotos({
 
   return (
     <>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <Text style={styles.title}>Fotoğraf ekle</Text>
       <Text style={styles.subtitle}>Yükünüzün fotoğraflarını ekleyin</Text>
 
@@ -333,6 +339,9 @@ export default function StepPhotos({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

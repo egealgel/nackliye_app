@@ -43,7 +43,13 @@ export default function StepVehicle({
   const compatible = isVehicleCompatible(vehicleType, weight);
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <Text style={styles.title}>Araç türü seç</Text>
       <Text style={styles.subtitle}>
         {formatWeight(weight)} yük için araç seçin
@@ -123,6 +129,9 @@ export default function StepVehicle({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
   },
   title: {
     fontSize: 28,

@@ -101,6 +101,7 @@ export default function CityDistrictPicker({
           )}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
         />
       </View>
     );
@@ -161,6 +162,7 @@ export default function CityDistrictPicker({
         )}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
       />
     </View>
   );
