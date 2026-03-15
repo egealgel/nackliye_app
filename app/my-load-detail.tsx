@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -74,6 +74,8 @@ export default function MyLoadDetailScreen() {
   const [load, setLoad] = useState<LoadWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState<string | null>(null);
+  const assignGuardRef = useRef(false);
+  const ASSIGN_DEBOUNCE_MS = 2000;
 
   const { senders, refresh: refreshSenders } = useLoadMessageSenders(
     loadId && load ? load.id : null,
@@ -106,7 +108,9 @@ export default function MyLoadDetailScreen() {
   };
 
   const doAssign = async (driverId: string) => {
+    if (assignGuardRef.current) return;
     if (!loadId || !load) return;
+    assignGuardRef.current = true;
     setAssigning(driverId);
     try {
       // Re-fetch the load to avoid assigning a job that's already assigned/delivered
@@ -172,6 +176,7 @@ export default function MyLoadDetailScreen() {
       Alert.alert('Hata', err instanceof Error ? err.message : 'Bir hata oluştu.');
     } finally {
       setAssigning(null);
+      setTimeout(() => { assignGuardRef.current = false; }, ASSIGN_DEBOUNCE_MS);
     }
   };
 

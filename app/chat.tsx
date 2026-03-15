@@ -123,7 +123,10 @@ export default function ChatScreen() {
   const [bannerDismissed, setBannerDismissed] = useState<boolean | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [fullScreenImageUri, setFullScreenImageUri] = useState<string | null>(null);
+  const sendGuardRef = useRef(false);
+  const SEND_DEBOUNCE_MS = 2000;
 
   const fetchLoadInfo = useCallback(async () => {
     if (!loadId) return;
@@ -274,21 +277,29 @@ export default function ChatScreen() {
   };
 
   const sendTextMessage = async () => {
+    if (sendGuardRef.current) return;
     const text = input.trim();
     if (!text || !loadId || !otherUserId || !currentUserId) return;
 
+    sendGuardRef.current = true;
+    setSendingMessage(true);
     setInput('');
-    const { error } = await supabase.from('messages').insert({
-      sender_id: currentUserId,
-      receiver_id: otherUserId,
-      load_id: loadId,
-      content: text,
-      message_type: 'text',
-    });
-    if (!error) {
-      const preview = text.length > 50 ? text.slice(0, 50) + '…' : text;
-      await sendPushNotification(otherUserId, preview);
-      requestNotificationsAfterFirstAction(currentUserId);
+    try {
+      const { error } = await supabase.from('messages').insert({
+        sender_id: currentUserId,
+        receiver_id: otherUserId,
+        load_id: loadId,
+        content: text,
+        message_type: 'text',
+      });
+      if (!error) {
+        const preview = text.length > 50 ? text.slice(0, 50) + '…' : text;
+        await sendPushNotification(otherUserId, preview);
+        requestNotificationsAfterFirstAction(currentUserId);
+      }
+    } finally {
+      setSendingMessage(false);
+      setTimeout(() => { sendGuardRef.current = false; }, SEND_DEBOUNCE_MS);
     }
   };
 
@@ -634,15 +645,19 @@ export default function ChatScreen() {
             />
           </View>
           <TouchableOpacity
-            style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
+            style={[styles.sendBtn, (!input.trim() || sendingMessage) && styles.sendBtnDisabled]}
             onPress={sendTextMessage}
-            disabled={!input.trim()}
+            disabled={!input.trim() || sendingMessage}
           >
-            <Ionicons
-              name="send"
-              size={20}
-              color={input.trim() ? '#FFFFFF' : '#9CA3AF'}
-            />
+            {sendingMessage ? (
+              <ActivityIndicator size="small" color="#9CA3AF" />
+            ) : (
+              <Ionicons
+                name="send"
+                size={20}
+                color={input.trim() ? '#FFFFFF' : '#9CA3AF'}
+              />
+            )}
           </TouchableOpacity>
         </View>
 

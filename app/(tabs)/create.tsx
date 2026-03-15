@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -68,12 +68,15 @@ export default function CreateLoadScreen() {
   const [formData, setFormData] = useState<LoadFormData>(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const submitGuardRef = useRef(false);
+  const SUBMIT_DEBOUNCE_MS = 2000;
 
   // Clear loading/redirect state when screen is focused (fixes spinner when reopening after a previous create)
   useFocusEffect(
     useCallback(() => {
       setIsRedirecting(false);
       setIsSubmitting(false);
+      submitGuardRef.current = false;
     }, []),
   );
 
@@ -128,6 +131,7 @@ export default function CreateLoadScreen() {
   );
 
   const handlePublishBosArac = async () => {
+    if (submitGuardRef.current) return;
     if (!session?.user?.id) {
       Alert.alert('Hata', 'Lütfen giriş yapın.');
       return;
@@ -137,6 +141,7 @@ export default function CreateLoadScreen() {
       Alert.alert('Uyarı', 'Lütfen boş aracınızı tanımlayın.');
       return;
     }
+    submitGuardRef.current = true;
     setIsSubmitting(true);
     try {
       const { error } = await supabase
@@ -184,15 +189,18 @@ export default function CreateLoadScreen() {
       Alert.alert('Hata', error.message || 'Bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setIsSubmitting(false);
+      setTimeout(() => { submitGuardRef.current = false; }, SUBMIT_DEBOUNCE_MS);
     }
   };
 
   const handlePublish = async () => {
+    if (submitGuardRef.current) return;
     if (!session?.user?.id) {
       Alert.alert('Hata', 'Lütfen giriş yapın.');
       return;
     }
 
+    submitGuardRef.current = true;
     setIsSubmitting(true);
     try {
       const photoUrls = formData.photos
@@ -272,6 +280,7 @@ export default function CreateLoadScreen() {
       );
     } finally {
       setIsSubmitting(false);
+      setTimeout(() => { submitGuardRef.current = false; }, SUBMIT_DEBOUNCE_MS);
     }
   };
 
