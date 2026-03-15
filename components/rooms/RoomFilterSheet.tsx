@@ -29,6 +29,7 @@ const DEFAULT_FILTERS: RoomFilters = {
   fromCities: [],
   fromCityDistricts: {},
   toCities: [],
+  toCityDistricts: {},
   dateFilter: 'all',
   statusFilter: 'active',
 };
@@ -84,15 +85,25 @@ export default function RoomFilterSheet({
 
   useEffect(() => {
     if (visible) {
+      const fromDistricts = appliedFilters.fromCityDistricts ?? {};
+      const toDistricts = appliedFilters.toCityDistricts ?? {};
       setPending({
         fromCities: [...appliedFilters.fromCities],
-        fromCityDistricts: Object.keys(appliedFilters.fromCityDistricts).reduce<
-          Record<string, string[]>
-        >((acc, c) => {
-          acc[c] = [...(appliedFilters.fromCityDistricts[c] || [])];
-          return acc;
-        }, {}),
+        fromCityDistricts: Object.keys(fromDistricts).reduce<Record<string, string[]>>(
+          (acc, c) => {
+            acc[c] = [...(fromDistricts[c] || [])];
+            return acc;
+          },
+          {},
+        ),
         toCities: [...appliedFilters.toCities],
+        toCityDistricts: Object.keys(toDistricts).reduce<Record<string, string[]>>(
+          (acc, c) => {
+            acc[c] = [...(toDistricts[c] || [])];
+            return acc;
+          },
+          {},
+        ),
         dateFilter: appliedFilters.dateFilter,
         statusFilter: appliedFilters.statusFilter,
       });

@@ -59,6 +59,7 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
       fromCities: [],
       fromCityDistricts: {},
       toCities: [],
+      toCityDistricts: {},
       dateFilter: 'all',
       statusFilter: 'active',
     });
@@ -145,6 +146,7 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
       ...filters,
       fromCities: [...neredenCities],
       fromCityDistricts: { ...neredenDistricts },
+      toCityDistricts: filters.toCityDistricts ?? {},
     });
     setPicker(null);
   };
@@ -153,6 +155,7 @@ export default function RoomFilterBar({ filters, onFiltersChange }: Props) {
     onFiltersChange({
       ...filters,
       toCities: [...nereyeCities],
+      toCityDistricts: filters.toCityDistricts ?? {},
     });
     setPicker(null);
   };

@@ -28,6 +28,7 @@ const DEFAULT_FILTERS: RoomFilters = {
   fromCities: [],
   fromCityDistricts: {},
   toCities: [],
+  toCityDistricts: {},
   dateFilter: 'all',
   statusFilter: 'active',
 };
