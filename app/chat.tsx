@@ -19,7 +19,7 @@ import ImageViewerModal from '@/components/chat/ImageViewerModal';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth';
 import { useUnreadCount } from '@/lib/UnreadCountContext';
 import { supabase } from '@/services/supabase';
@@ -112,6 +112,7 @@ export default function ChatScreen() {
   const currentUserId = session?.user?.id || '';
   const flatListRef = useRef<FlatList>(null);
   const prevMessagesLength = useRef(0);
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadInfo, setLoadInfo] = useState<LoadInfo | null>(null);
@@ -583,7 +584,14 @@ export default function ChatScreen() {
         />
       )}
 
-        <View style={styles.inputRow}>
+        <View
+          style={[
+            styles.inputRow,
+            Platform.OS === 'android' && {
+              paddingBottom: 8 + (insets.bottom || 16),
+            },
+          ]}
+        >
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={() => handlePickPhoto('camera')}
