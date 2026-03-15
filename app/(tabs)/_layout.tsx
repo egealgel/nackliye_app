@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnreadCount } from '@/lib/UnreadCountContext';
 
 function CreateTabIcon() {
@@ -36,8 +37,18 @@ const MessageBadge = ({ count }: { count: number }) => {
   );
 };
 
+const TAB_BAR_BASE_HEIGHT = 64;
+const TAB_BAR_PADDING_BOTTOM = 8;
+const TAB_BAR_PADDING_TOP = 4;
+
 export default function TabLayout() {
   const { count: unreadCount } = useUnreadCount();
+  const insets = useSafeAreaInsets();
+
+  const isAndroid = Platform.OS === 'android';
+  const extraBottom = isAndroid ? (insets.bottom || 12) : 0;
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + extraBottom;
+  const tabBarPaddingBottom = TAB_BAR_PADDING_BOTTOM + extraBottom;
 
   return (
     <Tabs
@@ -51,9 +62,9 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#F0F0F0',
           borderTopWidth: 1,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 4,
+          height: tabBarHeight,
+          paddingBottom: tabBarPaddingBottom,
+          paddingTop: TAB_BAR_PADDING_TOP,
           paddingHorizontal: 8,
         },
         headerStyle: { backgroundColor: '#FFFFFF' },
