@@ -233,17 +233,21 @@ export default function StepPhotos({
               />
               {photo.status === 'uploading' && (
                 <View style={styles.overlay}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.overlayText}>
-                    Yükleniyor... ({photos.filter((p) => p.status === 'done').length + 1}/{photos.length})
-                  </Text>
+                  <View style={styles.overlayContent}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.overlayText}>
+                      Yükleniyor... ({photos.filter((p) => p.status === 'done').length + 1}/{photos.length})
+                    </Text>
+                  </View>
                 </View>
               )}
               {photo.status === 'error' && (
                 <View style={styles.overlay}>
-                  <Ionicons name="alert-circle" size={24} color="#FEE2E2" />
-                  <Text style={styles.overlayText}>Yüklenemedi</Text>
-                  <Text style={styles.overlaySubtext}>Tekrar deneyin veya kaldırın</Text>
+                  <View style={styles.overlayContent}>
+                    <Ionicons name="alert-circle" size={24} color="#FEE2E2" />
+                    <Text style={styles.overlayText}>Yüklenemedi</Text>
+                    <Text style={styles.overlaySubtext}>Tekrar deneyin veya kaldırın</Text>
+                  </View>
                 </View>
               )}
               {photo.status === 'done' && (
@@ -290,6 +294,15 @@ export default function StepPhotos({
         </TouchableOpacity>
       )}
     </ScrollView>
+
+    <Modal visible={hasUploading} transparent animationType="fade">
+      <View style={styles.uploadOverlay}>
+        <View style={styles.uploadOverlayContent}>
+          <ActivityIndicator size="small" color={PRIMARY} />
+          <Text style={styles.uploadOverlayText}>Yükleniyor...</Text>
+        </View>
+      </View>
+    </Modal>
 
     <Modal
       visible={!!cameraPreviewUri}
@@ -385,21 +398,56 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+  },
+  overlayContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   overlayText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
+    width: '100%',
+    marginTop: 6,
   },
   overlaySubtext: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 10,
     marginTop: 2,
+    textAlign: 'center',
+    width: '100%',
+  },
+  uploadOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    zIndex: 999,
+  },
+  uploadOverlayContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadOverlayText: {
+    fontSize: 4,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 12,
+    textAlign: 'center',
+    width: '100%',
   },
   checkOverlay: {
     position: 'absolute',
