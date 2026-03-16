@@ -26,6 +26,7 @@ import StepVehicle from '@/components/create-load/StepVehicle';
 import StepPhotos from '@/components/create-load/StepPhotos';
 import StepDescription from '@/components/create-load/StepDescription';
 import StepReview from '@/components/create-load/StepReview';
+import BrandHeader from '@/components/BrandHeader';
 
 const TOTAL_STEPS = 8;
 const PRIMARY = '#2563EB';
@@ -379,27 +380,18 @@ export default function CreateLoadScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={[]}>
       <View style={{ flex: 1 }}>
       {isRedirecting && (
         <View style={styles.redirectOverlay}>
           <ActivityIndicator size="large" color={PRIMARY} />
         </View>
       )}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={handleGeri}
-          style={styles.geriButton}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={22} color="#1F2937" />
-          <Text style={styles.geriText}>Geri</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {createMode === 'bos_arac' ? 'Boş Araç Paylaş' : 'Yük Oluştur'}
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <BrandHeader
+        title={createMode === 'bos_arac' ? 'Boş Araç Paylaş' : 'Yük Oluştur'}
+        showBackButton
+        onBackPress={handleGeri}
+      />
 
       <View style={styles.toggleRow}>
         <TouchableOpacity
@@ -472,36 +464,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  geriButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 44,
-    minHeight: 44,
-    paddingHorizontal: 4,
-    marginLeft: -4,
-    gap: 4,
-  },
-  geriText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  headerSpacer: {
-    minWidth: 60,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#1F2937',
   },
   toggleRow: {
     flexDirection: 'row',

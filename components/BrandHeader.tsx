@@ -19,12 +19,18 @@ type Props = {
   title?: string;
   showFilterIcon?: boolean;
   onPressFilter?: () => void;
+  showBackButton?: boolean;
+  onBackPress?: () => void;
+  rightElement?: React.ReactNode;
 };
 
 export default function BrandHeader({
   title = 'yüküstü',
   showFilterIcon = false,
   onPressFilter,
+  showBackButton = false,
+  onBackPress,
+  rightElement,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -39,29 +45,44 @@ export default function BrandHeader({
     (Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 0) : 0) +
     insets.top;
 
+  const leftSlot = showBackButton ? (
+    <TouchableOpacity
+      onPress={onBackPress}
+      style={styles.backBtn}
+      activeOpacity={0.7}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+    </TouchableOpacity>
+  ) : (
+    <View style={styles.spacer} />
+  );
+
+  const rightSlot = rightElement ?? (showFilterIcon ? (
+    <TouchableOpacity
+      onPress={onPressFilter}
+      style={styles.iconBtn}
+      activeOpacity={0.7}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Ionicons name="filter-outline" size={22} color="#FFFFFF" />
+    </TouchableOpacity>
+  ) : (
+    <View style={styles.spacer} />
+  ));
+
   return (
     <View style={[styles.wrapper, { paddingTop }]}>
       <ExpoStatusBar style="light" />
       <View style={styles.inner}>
-        <View style={styles.spacer} />
+        {leftSlot}
         <Text
           style={styles.title}
           numberOfLines={1}
         >
           {title}
         </Text>
-        {showFilterIcon ? (
-          <TouchableOpacity
-            onPress={onPressFilter}
-            style={styles.iconBtn}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="filter-outline" size={22} color="#FFFFFF" />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.spacer} />
-        )}
+        {rightSlot}
       </View>
     </View>
   );
@@ -90,6 +111,10 @@ const styles = StyleSheet.create({
   },
   spacer: {
     width: 28,
+  },
+  backBtn: {
+    padding: 4,
+    marginRight: 4,
   },
   iconBtn: {
     alignItems: 'center',

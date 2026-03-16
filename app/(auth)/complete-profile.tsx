@@ -10,9 +10,10 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import BrandHeader from '@/components/BrandHeader';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/lib/auth';
 import { TURKISH_CITIES } from '@/constants/turkishCities';
@@ -70,8 +71,14 @@ export default function CompleteProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={[]}>
+      <BrandHeader
+        title="Profili Tamamla"
+        showBackButton
+        onBackPress={() => router.back()}
+      />
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
@@ -227,9 +234,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  scroll: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 24,
     paddingBottom: 40,
   },
   icon: {

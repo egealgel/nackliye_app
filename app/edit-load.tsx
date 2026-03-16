@@ -27,6 +27,7 @@ import {
 } from '@/types/load';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import BrandHeader from '@/components/BrandHeader';
 
 const PRIMARY = '#2563EB';
 const VEHICLE_OPTIONS: VehicleType[] = [
@@ -206,15 +207,12 @@ export default function EditLoadScreen() {
   const canSubmit = !!fromCity && !!toCity && weightNum > 0 && !submitting;
 
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Yük Düzenle</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
+    <SafeAreaView style={s.safe} edges={[]}>
+      <BrandHeader
+        title="Yük Düzenle"
+        showBackButton
+        onBackPress={() => router.back()}
+      />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -432,15 +430,6 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -448,7 +437,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#1F2937' },
 
   scroll: { flex: 1 },

@@ -24,6 +24,7 @@ import {
   VEHICLE_LABELS,
   isBosAracLoad,
 } from '@/types/load';
+import BrandHeader from '@/components/BrandHeader';
 
 const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
@@ -217,7 +218,12 @@ export default function MyLoadDetailScreen() {
 
   if (loading && !load) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <BrandHeader
+          title="Yük detayı"
+          showBackButton
+          onBackPress={() => router.back()}
+        />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={PRIMARY} />
         </View>
@@ -227,13 +233,12 @@ export default function MyLoadDetailScreen() {
 
   if (!load) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Yük detayı</Text>
-        </View>
+      <SafeAreaView style={styles.safe} edges={[]}>
+        <BrandHeader
+          title="Yük detayı"
+          showBackButton
+          onBackPress={() => router.back()}
+        />
         <View style={styles.center}>
           <Text style={styles.errorText}>Yük bulunamadı</Text>
         </View>
@@ -248,14 +253,12 @@ export default function MyLoadDetailScreen() {
   const hasDimensions = load.width_cm || load.length_cm || load.height_cm;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Yük detayı</Text>
-      </View>
-
+    <SafeAreaView style={styles.safe} edges={[]}>
+      <BrandHeader
+        title="Yük detayı"
+        showBackButton
+        onBackPress={() => router.back()}
+      />
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           {isBosArac ? (
@@ -447,17 +450,6 @@ export default function MyLoadDetailScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8F8F8' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backBtn: { padding: 8, marginLeft: -8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', marginLeft: 8 },
   errorText: { fontSize: 16, color: '#6B7280' },
   scroll: { flex: 1 },
   card: {

@@ -28,6 +28,7 @@ import { pickAndUploadPhoto, pickAndUploadDocument, type DocumentMeta } from '@/
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestNotificationsAfterFirstAction } from '@/services/notifications';
 import { pickReportReason, submitMessageReport } from '@/utils/report';
+import BrandHeader from '@/components/BrandHeader';
 
 const CHAT_BANNER_DISMISSED_KEY = 'chat_security_banner_dismissed';
 
@@ -577,27 +578,19 @@ export default function ChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={{ flex: 1 }}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {displayName}
-          </Text>
-          {displayPhone ? (
-            <Text style={styles.headerPhone} numberOfLines={1}>
-              {formatPhoneDisplay(displayPhone)}
-            </Text>
-          ) : null}
-        </View>
-        <TouchableOpacity onPress={openCall} style={styles.callBtn}>
-          <Ionicons name="call" size={22} color="#2563EB" />
-        </TouchableOpacity>
-      </View>
+      <BrandHeader
+        title={displayName}
+        showBackButton
+        onBackPress={() => router.back()}
+        rightElement={
+          <TouchableOpacity onPress={openCall} style={styles.headerCallBtn}>
+            <Ionicons name="call" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        }
+      />
 
       {bannerDismissed === false && (
         <View style={styles.banner}>
@@ -729,31 +722,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  backBtn: {
-    marginRight: 8,
-  },
-  headerCenter: {
-    flex: 1,
-    minWidth: 0,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  headerPhone: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 2,
+  headerCallBtn: {
+    padding: 8,
   },
   banner: {
     flexDirection: 'row',
@@ -794,9 +764,6 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     paddingVertical: 0,
     maxHeight: 76,
-  },
-  callBtn: {
-    padding: 8,
   },
   center: {
     flex: 1,
