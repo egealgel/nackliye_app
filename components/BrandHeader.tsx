@@ -14,6 +14,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 const HEADER_BG = '#2563EB';
 const TITLE_FONT_SIZE = 24;
 const LETTER_SPACING = 0.02 * TITLE_FONT_SIZE; // 0.48
+/** Equal-width slots so title stays centered with or without filter/back */
+const SLOT_WIDTH = 44;
 
 type Props = {
   title?: string;
@@ -48,41 +50,45 @@ export default function BrandHeader({
   const leftSlot = showBackButton ? (
     <TouchableOpacity
       onPress={onBackPress}
-      style={styles.backBtn}
+      style={styles.slotTouchable}
       activeOpacity={0.7}
       hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
     >
       <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
     </TouchableOpacity>
   ) : (
-    <View style={styles.spacer} />
+    <View style={styles.slotSpacer} />
   );
 
   const rightSlot = rightElement ?? (showFilterIcon ? (
     <TouchableOpacity
       onPress={onPressFilter}
-      style={styles.iconBtn}
+      style={styles.slotTouchable}
       activeOpacity={0.7}
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <Ionicons name="filter-outline" size={22} color="#FFFFFF" />
     </TouchableOpacity>
   ) : (
-    <View style={styles.spacer} />
+    <View style={styles.slotSpacer} />
   ));
 
   return (
     <View style={[styles.wrapper, { paddingTop }]}>
       <ExpoStatusBar style="light" />
       <View style={styles.inner}>
-        {leftSlot}
+        <View style={styles.slot}>
+          {leftSlot}
+        </View>
         <Text
           style={styles.title}
           numberOfLines={1}
         >
           {title}
         </Text>
-        {rightSlot}
+        <View style={styles.slot}>
+          {rightSlot}
+        </View>
       </View>
     </View>
   );
@@ -96,28 +102,30 @@ const styles = StyleSheet.create({
   inner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
+    minHeight: 44,
+  },
+  slot: {
+    width: SLOT_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slotSpacer: {
+    width: '100%',
+  },
+  slotTouchable: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
+    flex: 1,
     fontSize: TITLE_FONT_SIZE,
     fontWeight: '900',
     fontFamily: 'Inter_900Black',
     color: '#FFFFFF',
     letterSpacing: LETTER_SPACING,
     textAlign: 'center',
-    flex: 1,
-  },
-  spacer: {
-    width: 28,
-  },
-  backBtn: {
-    padding: 4,
-    marginRight: 4,
-  },
-  iconBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
