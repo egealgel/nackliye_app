@@ -413,6 +413,9 @@ export default function ChatScreen() {
 
     const isMe = m.sender_id === currentUserId;
     const isDocument = m.message_type === 'document';
+    const isImage = m.message_type === 'image' && !!m.media_url;
+    const isOnlyImage = isImage && !m.content;
+    const isAndroidOnlyImage = Platform.OS === 'android' && isOnlyImage;
 
     let docMeta: DocumentMeta | null = null;
     if (isDocument && m.content) {
@@ -460,12 +463,16 @@ export default function ChatScreen() {
                 <Text style={[styles.docDownloadText, isMe && styles.docDownloadTextMe]}>Aç</Text>
               </TouchableOpacity>
             </View>
-          ) : m.media_url && m.message_type === 'image' ? (
+          ) : isImage ? (
             <TouchableOpacity
               onPress={() => setFullScreenImageUri(m.media_url)}
               activeOpacity={1}
             >
-              <Image source={{ uri: m.media_url }} style={styles.bubbleImage} resizeMode="cover" />
+              <Image
+                source={{ uri: m.media_url }}
+                style={[styles.bubbleImage, isAndroidOnlyImage && styles.bubbleImageAndroid]}
+                resizeMode="cover"
+              />
             </TouchableOpacity>
           ) : null}
           {!isDocument && m.content ? (
@@ -479,7 +486,7 @@ export default function ChatScreen() {
               {m.content}
             </Text>
           ) : null}
-          <View style={styles.bubbleFooter}>
+          <View style={[styles.bubbleFooter, isAndroidOnlyImage && styles.bubbleFooterAndroidOnlyImage]}>
             <Text style={[styles.bubbleTime, isMe && styles.bubbleTimeMe]}>
               {timeLabel}
             </Text>
@@ -824,6 +831,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 6,
   },
+  bubbleImageAndroid: {
+    marginBottom: 0,
+  },
   docCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -888,6 +898,15 @@ const styles = StyleSheet.create({
     bottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  bubbleFooterAndroidOnlyImage: {
+    position: 'relative',
+    right: 0,
+    bottom: 0,
+    alignSelf: 'flex-end',
+    marginTop: 6,
+    paddingHorizontal: 2,
+    paddingBottom: 2,
   },
   bubbleTime: {
     fontSize: 11,
