@@ -18,6 +18,8 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
 import { VEHICLE_TYPES } from '@/constants/vehicleTypes';
 import { TURKISH_CITIES } from '@/constants/turkishCities';
+import BrandHeader from '@/components/BrandHeader';
+
 export default function ProfileScreen() {
   const { profile, signOut, refreshProfile, session } = useAuth();
   const [showVehiclePicker, setShowVehiclePicker] = useState(false);
@@ -75,7 +77,9 @@ export default function ProfileScreen() {
   const phone = formatPhone(rawPhone);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
+      <BrandHeader title="yüküstü" />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.avatar}>
         <Text style={styles.avatarText}>
           {profile?.name?.charAt(0)?.toUpperCase() ?? '?'}
@@ -232,7 +236,8 @@ export default function ProfileScreen() {
           />
         </SafeAreaView>
       </Modal>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -240,6 +245,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F8F8',
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
     alignItems: 'center',

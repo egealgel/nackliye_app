@@ -116,6 +116,7 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: 'Mesajlar',
+          headerShown: false,
           headerShadowVisible: false,
           contentStyle: { backgroundColor: '#FFFFFF' },
           tabBarIcon: ({ color }) => (
@@ -131,6 +132,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profil',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Ionicons name="person" size={26} color={color} />
           ),

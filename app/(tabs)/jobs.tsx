@@ -18,6 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
 import { useLoadContactCounts } from '@/hooks/useLoadContactCounts';
+import BrandHeader from '@/components/BrandHeader';
 import {
   LoadWithDetails,
   ProfileSnippet,
@@ -780,11 +781,8 @@ export default function JobsScreen() {
       : 'Odalardaki yüklere teklif vererek iş alın';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>İşlerim</Text>
-      </View>
-
+    <SafeAreaView style={styles.safe} edges={[]}>
+      <BrandHeader title="yüküstü" />
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'posted' && styles.tabActive]}
@@ -863,17 +861,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F8F8F8',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1A1A1A',
   },
 
   // ── Tab bar ──

@@ -19,6 +19,7 @@ import { useRoomLoads, useRoomCounts, type RoomFilters } from '@/hooks/useRoomLo
 import RoomTabs from '@/components/rooms/RoomTabs';
 import RoomLoadCard from '@/components/rooms/RoomLoadCard';
 import RoomFilterSheet from '@/components/rooms/RoomFilterSheet';
+import BrandHeader from '@/components/BrandHeader';
 
 const PRIMARY = '#2563EB';
 
@@ -130,30 +131,12 @@ export default function RoomsScreen() {
       : loads;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.greeting}>
-          Merhaba, {profile?.name ?? 'Kullanıcı'}!
-        </Text>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Odalar</Text>
-          {!isBosAracRoom && (
-            <TouchableOpacity
-              style={styles.filterIconBtn}
-              onPress={() => setFilterSheetVisible(true)}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <MaterialCommunityIcons
-                name="filter-variant"
-                size={24}
-                color={hasAnyFilter ? PRIMARY : '#374151'}
-              />
-              {hasAnyFilter && <View style={styles.filterBadge} />}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
+    <SafeAreaView style={styles.safe} edges={[]}>
+      <BrandHeader
+        title="yüküstü"
+        showFilterIcon={!isBosAracRoom}
+        onPressFilter={() => setFilterSheetVisible(true)}
+      />
       <RoomTabs
         selected={selectedRoom}
         onSelect={handleRoomSelect}
@@ -240,40 +223,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F8F8F8',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  greeting: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 2,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1A1A1A',
-  },
-  filterIconBtn: {
-    position: 'relative',
-    padding: 4,
-  },
-  filterBadge: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: PRIMARY,
   },
   filtreAktifRow: {
     paddingVertical: 8,

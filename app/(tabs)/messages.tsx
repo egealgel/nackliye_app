@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth';
 import { useUnreadCount } from '@/lib/UnreadCountContext';
 import { useConversations, type Conversation } from '@/hooks/useConversations';
 import ConversationRow from '@/components/ConversationRow';
+import BrandHeader from '@/components/BrandHeader';
 
 const PRIMARY = '#2563EB';
 
@@ -45,20 +46,15 @@ export default function MessagesScreen() {
 
   const keyExtractor = useCallback((item: Conversation) => item.id, []);
 
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
+  return (
+    <View style={styles.container}>
+      <BrandHeader title="yüküstü" />
+      {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={PRIMARY} />
           <Text style={styles.loadingText}>Yükleniyor...</Text>
         </View>
-      </View>
-    );
-  }
-
-  if (conversations.length === 0) {
-    return (
-      <View style={styles.container}>
+      ) : conversations.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIcon}>
             <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
@@ -68,12 +64,7 @@ export default function MessagesScreen() {
             Bir yüke "Mesaj Gönder" dediğinizde{'\n'}sohbet burada listelenecek.
           </Text>
         </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
+      ) : (
       <FlatList
         data={conversations}
         renderItem={renderItem}
@@ -87,6 +78,7 @@ export default function MessagesScreen() {
           />
         }
       />
+      )}
     </View>
   );
 }
