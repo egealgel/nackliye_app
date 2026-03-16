@@ -27,6 +27,7 @@ export function UnreadCountProvider({ children }: { children: React.ReactNode })
   }, [session?.user?.id]);
 
   useEffect(() => {
+    // İlk yüklemede tam sayımı çek
     fetchCount();
 
     const userId = session?.user?.id;
@@ -34,15 +35,42 @@ export function UnreadCountProvider({ children }: { children: React.ReactNode })
 
     const channel = supabase
       .channel('unread-messages')
+      // Yeni mesaj geldiğinde (INSERT) ve bu kullanıcı alıcı ise sayacı artır
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
           filter: `receiver_id=eq.${userId}`,
         },
-        () => fetchCount()
+        (payload) => {
+          const row: any = payload.new;
+          if (row?.receiver_id === userId && row.read_at == null) {
+            setCount((prev) => (prev || 0) + 1);
+          }
+        }
+      )
+      // Bir mesaj okunup read_at null'dan dolu hale geçince sayacı azalt
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${userId}`,
+        },
+        (payload) => {
+          const oldRow: any = payload.old;
+          const newRow: any = payload.new;
+          if (
+            oldRow?.receiver_id === userId &&
+            oldRow.read_at == null &&
+            newRow?.read_at != null
+          ) {
+            setCount((prev) => Math.max(0, (prev || 0) - 1));
+          }
+        }
       )
       .subscribe();
 
