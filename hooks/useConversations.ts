@@ -133,13 +133,56 @@ export function useConversations(currentUserId: string | undefined) {
 
     const { data: hiddenRows } = await supabase
       .from('hidden_conversations')
-      .select('load_id, other_user_id')
+      .select('load_id, other_user_id, hidden_at')
       .eq('user_id', currentUserId);
 
-    const hiddenSet = new Set(
-      (hiddenRows || []).map((r) => `${r.load_id}_${r.other_user_id}`)
+    const hiddenMap = new Map(
+      (hiddenRows || []).map((r) => [
+        `${r.load_id}_${r.other_user_id}`,
+        r as { load_id: string; other_user_id: string; hidden_at: string | null },
+      ])
     );
-    result = result.filter((c) => !hiddenSet.has(`${c.loadId}_${c.otherUserId}`));
+
+    const toUnhideKeys: string[] = [];
+
+    result = result.filter((c) => {
+      const key = `${c.loadId}_${c.otherUserId}`;
+      const hidden = hiddenMap.get(key);
+      if (!hidden) return true;
+
+      if (!hidden.hidden_at) {
+        // Eski kayıtlar için, saklı tutmaya devam et
+        return false;
+      }
+
+      const lastMessageTime = new Date(c.lastMessageAt).getTime();
+      const hiddenAtTime = new Date(hidden.hidden_at).getTime();
+
+      if (Number.isNaN(lastMessageTime) || Number.isNaN(hiddenAtTime)) {
+        return false;
+      }
+
+      if (lastMessageTime > hiddenAtTime) {
+        toUnhideKeys.push(key);
+        return true;
+      }
+
+      return false;
+    });
+
+    if (toUnhideKeys.length > 0) {
+      await Promise.all(
+        toUnhideKeys.map((key) => {
+          const [loadId, otherUserId] = key.split('_');
+          return supabase
+            .from('hidden_conversations')
+            .delete()
+            .eq('user_id', currentUserId)
+            .eq('load_id', loadId)
+            .eq('other_user_id', otherUserId);
+        })
+      );
+    }
 
     result.sort(
       (a, b) =>
