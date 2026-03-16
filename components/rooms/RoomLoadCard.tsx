@@ -24,6 +24,7 @@ import {
   VEHICLE_LABELS,
   isBosAracLoad,
 } from '@/types/load';
+import { pickReportReason, submitLoadReport } from '@/utils/report';
 
 const PRIMARY = '#2563EB';
 const GREEN = '#16A34A';
@@ -154,12 +155,37 @@ export default function RoomLoadCard({ load, currentUserId, onDelete }: Props) {
 
   const isBosArac = isBosAracLoad(load);
 
+  const handleReportPress = async () => {
+    if (!currentUserId || currentUserId === load.user_id) {
+      Alert.alert('Bilgi', 'Kendi ilanınızı ihbar edemezsiniz.');
+      return;
+    }
+    const reason = await pickReportReason();
+    if (!reason) return;
+    await submitLoadReport({
+      reporterId: currentUserId,
+      reportedUserId: load.user_id,
+      loadId: load.id,
+      reason,
+    });
+  };
+
   return (
     <TouchableOpacity
       style={[styles.card, isBosArac && styles.bosAracCard]}
       onPress={() => setExpanded(!expanded)}
       activeOpacity={0.8}
     >
+      {!isOwner && (
+        <TouchableOpacity
+          style={styles.reportIcon}
+          onPress={handleReportPress}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="flag-outline" size={18} color="#9CA3AF" />
+        </TouchableOpacity>
+      )}
       {isBosArac ? (
         <>
           <Text style={styles.bosAracDescription} numberOfLines={2}>
@@ -618,6 +644,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 3,
+  },
+  reportIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 10,
   },
   bosAracCard: {
     paddingVertical: 10,

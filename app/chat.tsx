@@ -27,6 +27,7 @@ import LoadSummaryCard from '@/components/chat/LoadSummaryCard';
 import { pickAndUploadPhoto, pickAndUploadDocument, type DocumentMeta } from '@/utils/chatMedia';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestNotificationsAfterFirstAction } from '@/services/notifications';
+import { pickReportReason, submitMessageReport } from '@/utils/report';
 
 const CHAT_BANNER_DISMISSED_KEY = 'chat_security_banner_dismissed';
 
@@ -441,8 +442,48 @@ export default function ChatScreen() {
       hour12: false,
     });
 
+    const handleReportMessage = async () => {
+      if (!currentUserId || m.sender_id === currentUserId) {
+        Alert.alert('Bilgi', 'Kendi mesajınızı ihbar edemezsiniz.');
+        return;
+      }
+      const reason = await pickReportReason();
+      if (!reason) return;
+      await submitMessageReport({
+        reporterId: currentUserId,
+        reportedUserId: m.sender_id,
+        messageId: m.id,
+        reason,
+      });
+    };
+
+    const handleLongPress = () => {
+      if (Platform.OS === 'ios') {
+        Alert.alert(
+          'Mesaj',
+          undefined,
+          [
+            { text: 'İptal', style: 'cancel' },
+            {
+              text: 'İhbar Et',
+              style: 'destructive',
+              onPress: handleReportMessage,
+            },
+          ],
+          { cancelable: true }
+        );
+      } else {
+        handleReportMessage();
+      }
+    };
+
     return (
-      <View style={[styles.bubbleWrap, isMe && styles.bubbleWrapMe]}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onLongPress={handleLongPress}
+        delayLongPress={400}
+        style={[styles.bubbleWrap, isMe && styles.bubbleWrapMe]}
+      >
         <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
           {isDocument && m.media_url && docMeta ? (
             <View style={styles.docCard}>
@@ -513,7 +554,7 @@ export default function ChatScreen() {
             )}
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
