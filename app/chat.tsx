@@ -608,6 +608,9 @@ export default function ChatScreen() {
             Platform.OS === 'android' && {
               paddingBottom: 8 + (insets.bottom || 16),
             },
+            Platform.OS === 'ios' && {
+              paddingBottom: 8 + (insets.bottom || 0),
+            },
           ]}
         >
           <TouchableOpacity
