@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/services/supabase';
@@ -58,7 +59,11 @@ export default function PhoneScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.content}>
-        <Text style={styles.icon}>🚛</Text>
+        <Image
+          source={require('@/assets/icon.png')}
+          style={styles.logo}
+          resizeMode="cover"
+        />
         <Text style={styles.title}>yüküstü</Text>
         <Text style={styles.subtitle}>Telefon numaranızla giriş yapın</Text>
 
@@ -108,16 +113,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  icon: {
-    fontSize: 64,
-    textAlign: 'center',
-    marginBottom: 8,
+  logo: {
+    width: 100,
+    height: 100,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 12,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontFamily: 'Inter_900Black',
+    fontSize: 28,
+    letterSpacing: 0.56,
     textAlign: 'center',
-    color: '#1A1A1A',
+    color: '#2563EB',
     marginBottom: 8,
   },
   subtitle: {
