@@ -4,11 +4,13 @@ import { useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import LottieView from 'lottie-react-native';
 import { useAuth } from '@/lib/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
   const { session, isLoading, profileComplete } = useAuth();
   const router = useRouter();
   const animationRef = useRef<LottieView | null>(null);
+  const didRouteRef = useRef(false);
   const [animationDone, setAnimationDone] = useState(false);
 
   useEffect(() => {
@@ -18,17 +20,30 @@ export default function Index() {
 
   useEffect(() => {
     if (!animationDone || isLoading) return;
+    if (didRouteRef.current) return;
 
     if (!session) {
-      router.replace('/(auth)/phone');
+      (async () => {
+        try {
+          const seen = await AsyncStorage.getItem('onboarding_seen');
+          const isSeen = seen === 'true';
+          didRouteRef.current = true;
+          router.replace(isSeen ? '/(auth)/phone' : '/(auth)/onboarding');
+        } catch {
+          didRouteRef.current = true;
+          router.replace('/(auth)/onboarding');
+        }
+      })();
       return;
     }
 
     if (!profileComplete) {
+      didRouteRef.current = true;
       router.replace('/(auth)/complete-profile');
       return;
     }
 
+    didRouteRef.current = true;
     router.replace('/(tabs)');
   }, [animationDone, isLoading, session, profileComplete, router]);
 
