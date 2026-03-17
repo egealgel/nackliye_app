@@ -11,6 +11,7 @@ import {
   FlatList,
   TextInput,
   SafeAreaView,
+  Linking,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -237,6 +238,14 @@ export default function ProfileScreen() {
         </SafeAreaView>
       </Modal>
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.supportRow}
+        onPress={() => Linking.openURL('mailto:destek@yukustu.com.tr')}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.supportText}>İletişim: destek@yukustu.com.tr</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -254,6 +263,16 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  supportRow: {
+    marginTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  supportText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    textAlign: 'center',
   },
   avatar: {
     width: 80,
