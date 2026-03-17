@@ -134,8 +134,11 @@ export default function ChatScreen() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [fullScreenImageUri, setFullScreenImageUri] = useState<string | null>(null);
+  const [isLoadingMoreOld, setIsLoadingMoreOld] = useState(false);
+  const [hasMoreOld, setHasMoreOld] = useState(true);
   const sendGuardRef = useRef(false);
   const SEND_DEBOUNCE_MS = 2000;
+  const PAGE_SIZE = 30;
 
   const fetchLoadInfo = useCallback(async () => {
     if (!loadId) return;
@@ -169,23 +172,65 @@ export default function ChatScreen() {
     await refreshUnread();
   }, [loadId, currentUserId, refreshUnread]);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchLatestMessages = useCallback(async (replace: boolean) => {
     if (!loadId || !otherUserId || !currentUserId) return;
 
     const { data } = await supabase
       .from('messages')
       .select('id, sender_id, receiver_id, content, media_url, message_type, read_at, created_at')
       .eq('load_id', loadId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .range(0, PAGE_SIZE - 1);
 
     const betweenUs = (data || []).filter(
       (m) =>
         (m.sender_id === currentUserId && m.receiver_id === otherUserId) ||
         (m.sender_id === otherUserId && m.receiver_id === currentUserId)
     );
-    setMessages(betweenUs);
+    const asc = [...betweenUs].reverse();
+    setMessages((prev) => {
+      const next = replace ? asc : [...prev, ...asc];
+      const uniq = new Map(next.map((x) => [x.id, x]));
+      return [...uniq.values()].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    });
     setLoading(false);
-  }, [loadId, otherUserId, currentUserId]);
+    setHasMoreOld(betweenUs.length === PAGE_SIZE);
+  }, [PAGE_SIZE, loadId, otherUserId, currentUserId]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!loadId || !otherUserId || !currentUserId) return;
+    if (isLoadingMoreOld || !hasMoreOld) return;
+    setIsLoadingMoreOld(true);
+    try {
+      const offset = messages.length;
+      const { data } = await supabase
+        .from('messages')
+        .select('id, sender_id, receiver_id, content, media_url, message_type, read_at, created_at')
+        .eq('load_id', loadId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      const betweenUs = (data || []).filter(
+        (m) =>
+          (m.sender_id === currentUserId && m.receiver_id === otherUserId) ||
+          (m.sender_id === otherUserId && m.receiver_id === currentUserId)
+      );
+
+      const asc = [...betweenUs].reverse();
+      setMessages((prev) => {
+        const next = [...asc, ...prev];
+        const uniq = new Map(next.map((x) => [x.id, x]));
+        return [...uniq.values()].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+      setHasMoreOld(betweenUs.length === PAGE_SIZE);
+    } finally {
+      setIsLoadingMoreOld(false);
+    }
+  }, [PAGE_SIZE, currentUserId, hasMoreOld, isLoadingMoreOld, loadId, messages.length, otherUserId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -220,7 +265,10 @@ export default function ChatScreen() {
   }, [fetchLoadInfo]);
 
   useEffect(() => {
-    fetchMessages();
+    setLoading(true);
+    setHasMoreOld(true);
+    setIsLoadingMoreOld(false);
+    fetchLatestMessages(true);
 
     const channel = supabase
       .channel(`chat-${loadId}-${otherUserId}`)
@@ -232,14 +280,14 @@ export default function ChatScreen() {
           table: 'messages',
           filter: `load_id=eq.${loadId}`,
         },
-        () => fetchMessages()
+        () => fetchLatestMessages(false)
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadId, otherUserId, fetchMessages]);
+  }, [loadId, otherUserId, fetchLatestMessages]);
 
   useEffect(() => {
     if (messages.length > prevMessagesLength.current && messages.length > 0) {
@@ -647,8 +695,29 @@ export default function ChatScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.key}
           contentContainerStyle={styles.list}
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <>
+              {isLoadingMoreOld ? (
+                <View style={styles.loadMoreTopRow}>
+                  <ActivityIndicator size="small" color="#2563EB" />
+                  <Text style={styles.loadMoreText}>Daha fazla yükleniyor...</Text>
+                </View>
+              ) : null}
+              {listHeader}
+            </>
+          }
           keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+          onScroll={(e) => {
+            if (e.nativeEvent.contentOffset.y <= 20) {
+              loadOlderMessages();
+            }
+          }}
+          scrollEventThrottle={16}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: false })
           }
@@ -763,6 +832,18 @@ const styles = StyleSheet.create({
     right: 10,
     top: 10,
     padding: 4,
+  },
+  loadMoreTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  loadMoreText: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   inputWrap: {
     flex: 1,

@@ -95,9 +95,15 @@ function getStatusList(filter: StatusFilter): string[] {
 export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
   const [loads, setLoads] = useState<LoadWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const pageRef = useRef(0);
+  const profileCacheRef = useRef<Map<string, ProfileSnippet>>(new Map());
   const isMounted = useRef(true);
 
-  const fetchLoads = useCallback(async () => {
+  const PAGE_SIZE = 20;
+
+  const fetchPage = useCallback(async (page: number, replace: boolean) => {
     const statusList = getStatusList(filters.statusFilter);
     const dateGte = getDateFilterGte(filters.dateFilter);
 
@@ -105,7 +111,9 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       .from('loads')
       .select('*')
       .eq('vehicle_type', vehicleType)
-      .in('status', statusList);
+      .in('status', statusList)
+      .order('created_at', { ascending: false })
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
     if (filters.fromCities.length > 0) {
       query = query.in('from_city', filters.fromCities);
@@ -140,7 +148,9 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
           .select('*')
           .eq('vehicle_type', vehicleType)
           .in('status', statusList)
-          .gte('created_at', dateGte);
+          .gte('created_at', dateGte)
+          .order('created_at', { ascending: false })
+          .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
         if (filters.fromCities.length > 0) fallbackQuery = fallbackQuery.in('from_city', filters.fromCities);
         if (filters.toCities.length > 0) fallbackQuery = fallbackQuery.in('to_city', filters.toCities);
         const fb = await fallbackQuery;
@@ -151,16 +161,20 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
 
     if (loadsErr || !loadsData) {
       if (isMounted.current) {
-        setLoads([]);
+        if (replace) setLoads([]);
         setIsLoading(false);
+        setIsLoadingMore(false);
+        setHasMore(false);
       }
       return;
     }
 
     if (loadsData.length === 0) {
       if (isMounted.current) {
-        setLoads([]);
+        if (replace) setLoads([]);
         setIsLoading(false);
+        setIsLoadingMore(false);
+        setHasMore(false);
       }
       return;
     }
@@ -194,42 +208,53 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       if (l.assigned_to) allUserIds.add(l.assigned_to);
     });
 
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, name, phone, rating_avg')
-      .in('id', [...allUserIds]);
-
-    const profileMap = new Map<string, ProfileSnippet>();
-    (profiles || []).forEach((p) => profileMap.set(p.id, p));
+    const missingIds = [...allUserIds].filter((id) => !profileCacheRef.current.has(id));
+    if (missingIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, phone, rating_avg')
+        .in('id', missingIds);
+      (profiles || []).forEach((p) => profileCacheRef.current.set(p.id, p));
+    }
 
     const mapped: LoadWithDetails[] = filteredByDistrict.map((l) => ({
       ...l,
-      ownerName: profileMap.get(l.user_id)?.name || 'Bilinmiyor',
-      ownerPhone: profileMap.get(l.user_id)?.phone || '',
-      ownerRatingAvg: profileMap.get(l.user_id)?.rating_avg ?? null,
+      ownerName: profileCacheRef.current.get(l.user_id)?.name || 'Bilinmiyor',
+      ownerPhone: profileCacheRef.current.get(l.user_id)?.phone || '',
+      ownerRatingAvg: profileCacheRef.current.get(l.user_id)?.rating_avg ?? null,
       assignedDriverName: l.assigned_to
-        ? profileMap.get(l.assigned_to)?.name
+        ? profileCacheRef.current.get(l.assigned_to)?.name
         : undefined,
       assignedDriverPhone: l.assigned_to
-        ? profileMap.get(l.assigned_to)?.phone
+        ? profileCacheRef.current.get(l.assigned_to)?.phone
         : undefined,
       assignedDriverRatingAvg: l.assigned_to
-        ? (profileMap.get(l.assigned_to)?.rating_avg ?? null)
+        ? (profileCacheRef.current.get(l.assigned_to)?.rating_avg ?? null)
         : undefined,
     }));
 
-    const sortedResult = sortRoomLoads(mapped);
+    const sortedResult = replace ? mapped : sortRoomLoads(mapped);
 
     if (isMounted.current) {
-      setLoads(sortedResult);
+      setHasMore(loadsData.length === PAGE_SIZE);
+      pageRef.current = page;
+      setLoads((prev) => {
+        const next = replace ? sortedResult : [...prev, ...sortedResult];
+        const uniq = new Map(next.map((x) => [x.id, x]));
+        return sortRoomLoads([...uniq.values()]);
+      });
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   }, [vehicleType, filters.fromCities, filters.fromCityDistricts, filters.toCities, filters.toCityDistricts, filters.dateFilter, filters.statusFilter]);
 
   useEffect(() => {
     isMounted.current = true;
     setIsLoading(true);
-    fetchLoads();
+    profileCacheRef.current = new Map();
+    pageRef.current = 0;
+    setHasMore(true);
+    fetchPage(0, true);
 
     const loadsChannel = supabase
       .channel(`room-loads-${vehicleType}`)
@@ -241,7 +266,13 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
           table: 'loads',
           filter: `vehicle_type=eq.${vehicleType}`,
         },
-        () => fetchLoads(),
+        () => {
+          profileCacheRef.current = new Map();
+          pageRef.current = 0;
+          setHasMore(true);
+          setIsLoading(true);
+          fetchPage(0, true);
+        },
       )
       .subscribe();
 
@@ -249,13 +280,29 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
       isMounted.current = false;
       supabase.removeChannel(loadsChannel);
     };
-  }, [vehicleType, fetchLoads]);
+  }, [vehicleType, fetchPage]);
 
   const removeLoad = useCallback((loadId: string) => {
     setLoads((prev) => prev.filter((l) => l.id !== loadId));
   }, []);
 
-  return { loads, isLoading, refresh: fetchLoads, removeLoad };
+  const refresh = useCallback(async () => {
+    if (!isMounted.current) return;
+    setIsLoading(true);
+    setIsLoadingMore(false);
+    profileCacheRef.current = new Map();
+    pageRef.current = 0;
+    setHasMore(true);
+    await fetchPage(0, true);
+  }, [fetchPage]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoading || isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    await fetchPage(pageRef.current + 1, false);
+  }, [fetchPage, hasMore, isLoading, isLoadingMore]);
+
+  return { loads, isLoading, isLoadingMore, hasMore, refresh, loadMore, removeLoad };
 }
 
 export function useRoomCounts(filters?: RoomFilters) {

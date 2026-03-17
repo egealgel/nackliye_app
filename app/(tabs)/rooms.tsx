@@ -73,7 +73,7 @@ export default function RoomsScreen() {
       ? { ...DEFAULT_FILTERS, statusFilter: 'all' }
       : filters;
 
-  const { loads, isLoading, refresh, removeLoad } = useRoomLoads(
+  const { loads, isLoading, isLoadingMore, hasMore, refresh, loadMore, removeLoad } = useRoomLoads(
     selectedRoom,
     effectiveFiltersForLoads,
   );
@@ -257,6 +257,22 @@ export default function RoomsScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={true}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          onEndReached={() => {
+            if (hasMore && !isLoadingMore) loadMore();
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            isLoadingMore ? (
+              <View style={styles.loadMoreRow}>
+                <ActivityIndicator size="small" color={PRIMARY} />
+                <Text style={styles.loadMoreText}>Daha fazla yükleniyor...</Text>
+              </View>
+            ) : null
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -318,6 +334,17 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+  },
+  loadMoreText: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   center: {
     flex: 1,

@@ -20,7 +20,7 @@ const PRIMARY = '#2563EB';
 export default function MessagesScreen() {
   const { session } = useAuth();
   const currentUserId = session?.user?.id;
-  const { conversations, isLoading, refresh, hideConversation } = useConversations(currentUserId);
+  const { conversations, isLoading, isLoadingMore, hasMore, refresh, loadMore, hideConversation } = useConversations(currentUserId);
   const { refresh: refreshUnread } = useUnreadCount();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -70,6 +70,22 @@ export default function MessagesScreen() {
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.list}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        onEndReached={() => {
+          if (hasMore && !isLoadingMore) loadMore();
+        }}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isLoadingMore ? (
+            <View style={styles.loadMoreRow}>
+              <ActivityIndicator size="small" color={PRIMARY} />
+              <Text style={styles.loadMoreText}>Daha fazla yükleniyor...</Text>
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -123,5 +139,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#FFFFFF',
     paddingTop: 0,
+  },
+  loadMoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+  },
+  loadMoreText: {
+    fontSize: 13,
+    color: '#9CA3AF',
   },
 });
