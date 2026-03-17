@@ -20,6 +20,12 @@ import { supabase } from '@/services/supabase';
 import { useLoadContactCounts } from '@/hooks/useLoadContactCounts';
 import BrandHeader from '@/components/BrandHeader';
 import {
+  initAppSettingsCache,
+  getNotificationBody,
+  getUserExpoPushToken,
+  sendPushNotification,
+} from '@/services/pushClient';
+import {
   LoadWithDetails,
   ProfileSnippet,
   formatWeight,
@@ -554,6 +560,22 @@ function TakenLoadCard({
                 content: '✅ Bu yük teslim edildi olarak işaretlendi.',
                 message_type: 'system',
               });
+
+              try {
+                await initAppSettingsCache();
+                const ownerToken = await getUserExpoPushToken(load.user_id);
+                if (ownerToken) {
+                  const from = load.from_city ?? '';
+                  const to = load.to_city ?? '';
+                  const body = getNotificationBody('notification_delivered', { from, to });
+                  await sendPushNotification(ownerToken, 'Teslim Edildi', body, {
+                    type: 'load',
+                    loadId: load.id,
+                  });
+                }
+              } catch {
+                // Silent fail
+              }
 
               onRefresh();
             } catch (err: unknown) {

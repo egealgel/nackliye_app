@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 import { Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/services/supabase';
+import { getActiveChatContext } from '@/lib/activeChat';
 
 const NOTIFICATION_REQUESTED_KEY = 'notification_permission_requested';
 
@@ -86,6 +87,27 @@ function setupNotificationListeners(): void {
   listenersSetup = true;
 
   Notifications.addNotificationReceivedListener((notification) => {
+    try {
+      const data = notification.request.content.data as Record<string, unknown>;
+      const type = data?.type as string | undefined;
+      if (type === 'chat') {
+        const loadId = data?.loadId as string | undefined;
+        const otherUserId = data?.otherUserId as string | undefined;
+        const active = getActiveChatContext();
+        if (
+          active &&
+          loadId &&
+          otherUserId &&
+          active.loadId === loadId &&
+          active.otherUserId === otherUserId
+        ) {
+          // Chat is currently open: don't show extra in-app alert
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
     const { title, body } = notification.request.content;
     Alert.alert(title ?? 'Bildirim', body ?? '');
   });

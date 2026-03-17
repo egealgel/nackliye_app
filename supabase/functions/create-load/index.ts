@@ -263,29 +263,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Push notifications (skip for bos_arac)
-    if (input.vehicle_type !== "bos_arac" && matchingDrivers.length > 0) {
-      const bodyText = `${input.from_city} → ${input.to_city} | ${input.weight_kg} kg`;
-      const fnUrl = `${supabaseUrl}/functions/v1/send-notification`;
-      for (const d of matchingDrivers) {
-      try {
-        await fetch(fnUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${supabaseServiceKey}`,
-          },
-          body: JSON.stringify({
-            user_id: d.id,
-            title: "Yeni Yük",
-            body: bodyText,
-            data: { type: "load", loadId: load.id },
-          }),
-        });
-      } catch (e) {
-        console.error("Push to", d.id, e);
-      }
-    }
+    // Push notifications:
+    // Client-side push (Expo Push API) is used in the app for now.
 
     return jsonResponse({
       load: {

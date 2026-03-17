@@ -17,6 +17,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
 import { requestNotificationsAfterFirstAction } from '@/services/notifications';
+import { getUserExpoPushToken, sendPushNotification } from '@/services/pushClient';
 import { LoadFormData, PhotoItem, VehicleType, suggestVehicleType } from '@/types/load';
 import ProgressBar from '@/components/create-load/ProgressBar';
 import CityDistrictPicker from '@/components/create-load/CityDistrictPicker';
@@ -241,14 +242,13 @@ export default function CreateLoadScreen() {
       if (matchingProfiles?.length) {
         for (const p of matchingProfiles) {
           try {
-            await supabase.functions.invoke('send-notification', {
-              body: {
-                user_id: p.id,
-                title: 'Yeni Yük',
-                body: bodyText,
-                data: { type: 'load', loadId: newLoad.id },
-              },
-            });
+            const token = await getUserExpoPushToken(p.id);
+            if (token) {
+              await sendPushNotification(token, 'Yeni Yük', bodyText, {
+                type: 'load',
+                loadId: newLoad.id,
+              });
+            }
           } catch {
             // Silent fail for push
           }

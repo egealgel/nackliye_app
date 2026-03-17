@@ -17,6 +17,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
+import {
+  initAppSettingsCache,
+  getNotificationBody,
+  getUserExpoPushToken,
+  sendPushNotification,
+} from '@/services/pushClient';
 import { useLoadMessageSenders } from '@/hooks/useLoadMessageSenders';
 import {
   LoadWithDetails,
@@ -159,14 +165,17 @@ export default function MyLoadDetailScreen() {
         ? (load.description?.slice(0, 50) || 'Boş araç ilanı') + (load.description && load.description.length > 50 ? '…' : '')
         : `${load.from_city ?? ''}${load.from_district ? '/' + load.from_district : ''} → ${load.to_city ?? ''}${load.to_district ? '/' + load.to_district : ''}`;
       try {
-        await supabase.functions.invoke('send-notification', {
-          body: {
-            user_id: driverId,
-            title: 'Yeni bir iş aldınız!',
-            body: bodyText,
-            data: { type: 'load', loadId: load.id },
-          },
-        });
+        await initAppSettingsCache();
+        const token = await getUserExpoPushToken(driverId);
+        if (token) {
+          const from = load.from_city ?? '';
+          const to = load.to_city ?? '';
+          const body = getNotificationBody('notification_job_assigned', { from, to }) || bodyText;
+          await sendPushNotification(token, 'İş Aldınız!', body, {
+            type: 'load',
+            loadId: load.id,
+          });
+        }
       } catch {
         // silent
       }

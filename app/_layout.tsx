@@ -8,6 +8,7 @@ import { Inter_900Black } from '@expo-google-fonts/inter';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { UnreadCountProvider } from '@/lib/UnreadCountContext';
 import { initNotificationListeners } from '@/services/notifications';
+import { initAppSettingsCache, refreshAppSettingsCache } from '@/services/pushClient';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,6 +20,21 @@ function NotificationsInit() {
       initNotificationListeners();
     }
   }, [session?.user?.id]);
+
+  return null;
+}
+
+function AppSettingsInit() {
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    initAppSettingsCache().then(() => {});
+    interval = setInterval(() => {
+      refreshAppSettingsCache().then(() => {});
+    }, 30 * 60 * 1000);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
 
   return null;
 }
@@ -38,6 +54,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <NotificationsInit />
+        <AppSettingsInit />
         <UnreadCountProvider>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />

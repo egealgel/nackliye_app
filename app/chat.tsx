@@ -29,6 +29,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestNotificationsAfterFirstAction } from '@/services/notifications';
 import { pickReportReason, submitMessageReport } from '@/utils/report';
 import BrandHeader from '@/components/BrandHeader';
+import { setActiveChatContext, clearActiveChatContext } from '@/lib/activeChat';
+import {
+  initAppSettingsCache,
+  getNotificationBody,
+  getUserExpoPushToken,
+  sendPushNotification as sendExpoPush,
+} from '@/services/pushClient';
 
 const CHAT_BANNER_DISMISSED_KEY = 'chat_security_banner_dismissed';
 
@@ -255,26 +262,38 @@ export default function ChatScreen() {
 
   const senderName = profile?.name ?? 'Biri';
 
-  const sendPushNotification = async (
-    receiverId: string,
-    messagePreview: string
-  ) => {
+  useFocusEffect(
+    useCallback(() => {
+      if (loadId && otherUserId) {
+        setActiveChatContext({ loadId, otherUserId });
+      }
+      return () => {
+        if (loadId && otherUserId) {
+          clearActiveChatContext({ loadId, otherUserId });
+        }
+      };
+    }, [loadId, otherUserId]),
+  );
+
+  const sendNewMessagePush = async (receiverId: string, messagePreview: string) => {
     try {
-      await supabase.functions.invoke('send-notification', {
-        body: {
-          user_id: receiverId,
-          title: 'Yeni Mesaj',
-          body: `${senderName}: ${messagePreview}`,
-          data: {
-            type: 'chat',
-            loadId,
-            otherUserId: currentUserId,
-            otherUserName: senderName,
-          },
-        },
+      await initAppSettingsCache();
+      const token = await getUserExpoPushToken(receiverId);
+      if (!token) return;
+
+      const body = getNotificationBody('notification_new_message', {
+        sender_name: senderName,
+        preview: messagePreview,
+      });
+
+      await sendExpoPush(token, 'Yeni Mesaj', body, {
+        type: 'chat',
+        loadId,
+        otherUserId: currentUserId,
+        otherUserName: senderName,
       });
     } catch {
-      // Silent fail for push
+      // Silent fail
     }
   };
 
@@ -296,7 +315,7 @@ export default function ChatScreen() {
       });
       if (!error) {
         const preview = text.length > 50 ? text.slice(0, 50) + '…' : text;
-        await sendPushNotification(otherUserId, preview);
+        await sendNewMessagePush(otherUserId, preview);
         requestNotificationsAfterFirstAction(currentUserId);
       }
     } finally {
@@ -317,7 +336,7 @@ export default function ChatScreen() {
       media_url: mediaUrl,
     });
     if (!error) {
-      await sendPushNotification(otherUserId, '📷 Fotoğraf');
+      await sendNewMessagePush(otherUserId, '📷 Fotoğraf');
       requestNotificationsAfterFirstAction(currentUserId);
     }
   };
@@ -334,7 +353,7 @@ export default function ChatScreen() {
       media_url: mediaUrl,
     });
     if (!error) {
-      await sendPushNotification(otherUserId, '📄 Belge');
+      await sendNewMessagePush(otherUserId, '📄 Belge');
       requestNotificationsAfterFirstAction(currentUserId);
     }
   };
