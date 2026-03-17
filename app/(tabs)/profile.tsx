@@ -76,6 +76,7 @@ export default function ProfileScreen() {
     return `+${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
   };
   const phone = formatPhone(rawPhone);
+  const supportEmail = 'destek@yüküstü.com.tr';
 
   return (
     <View style={styles.container}>
@@ -241,10 +242,10 @@ export default function ProfileScreen() {
 
       <TouchableOpacity
         style={styles.supportRow}
-        onPress={() => Linking.openURL('mailto:destek@yukustu.com.tr')}
+        onPress={() => Linking.openURL(encodeURI(`mailto:${supportEmail}`))}
         activeOpacity={0.7}
       >
-        <Text style={styles.supportText}>İletişim: destek@yukustu.com.tr</Text>
+        <Text style={styles.supportText}>İletişim: {supportEmail}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   },
   supportRow: {
     marginTop: 20,
-    paddingBottom: 16,
+    marginBottom: 24,
     paddingHorizontal: 16,
   },
   supportText: {

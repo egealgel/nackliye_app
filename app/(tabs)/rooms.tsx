@@ -8,6 +8,9 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -51,14 +54,14 @@ export default function RoomsScreen() {
   const [selectedRoom, setSelectedRoom] = useState<VehicleType>('minivan');
   const userPickedRoom = useRef(false);
   const lastAppliedVehicle = useRef<string | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const handleRoomSelect = useCallback((room: VehicleType) => {
     userPickedRoom.current = true;
     setSelectedRoom(room);
-    // Clear Boş Araç search when switching away
-    if (room !== 'bos_arac') {
-      setBosAracSearch('');
-    }
+    // Clear search when switching away from Boş Araç (keeps behavior from before)
+    if (room !== 'bos_arac') setSearchText('');
   }, []);
 
   const [filters, setFilters] = useState<RoomFilters>(DEFAULT_FILTERS);
@@ -75,13 +78,18 @@ export default function RoomsScreen() {
     effectiveFiltersForLoads,
   );
   const { counts, refresh: refreshCounts } = useRoomCounts(filters);
-  const [bosAracSearch, setBosAracSearch] = useState('');
 
   const hasAnyFilter =
     filters.fromCities.length > 0 ||
     filters.toCities.length > 0 ||
     filters.dateFilter !== 'all' ||
     filters.statusFilter !== 'active';
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      UIManager.setLayoutAnimationEnabledExperimental?.(true);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -121,56 +129,99 @@ export default function RoomsScreen() {
   const keyExtractor = useCallback((item: LoadWithDetails) => item.id, []);
 
   const isBosAracRoom = selectedRoom === 'bos_arac';
-  const filteredLoads =
-    isBosAracRoom && bosAracSearch.trim()
-      ? loads.filter((l) =>
-          normalizeTr(l.description || '').includes(
-            normalizeTr(bosAracSearch.trim()),
-          ),
-        )
-      : loads;
+  const filteredLoads = searchText.trim()
+    ? loads.filter((l) => {
+        const q = normalizeTr(searchText.trim());
+        if (!q) return true;
+        if (isBosAracRoom) {
+          return normalizeTr(l.description || '').includes(q);
+        }
+        const haystack = normalizeTr(
+          [
+            l.from_city,
+            l.from_district,
+            l.to_city,
+            l.to_district,
+            l.description,
+          ]
+            .filter(Boolean)
+            .join(' '),
+        );
+        return haystack.includes(q);
+      })
+    : loads;
+
+  const toggleSearch = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSearchVisible((v) => {
+      const next = !v;
+      if (!next) setSearchText('');
+      return next;
+    });
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setSearchVisible(false);
+    setSearchText('');
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <BrandHeader
         title="yüküstü"
-        showFilterIcon={!isBosAracRoom}
-        onPressFilter={() => setFilterSheetVisible(true)}
+        rightElement={
+          <View style={styles.headerRightRow}>
+            <TouchableOpacity
+              onPress={toggleSearch}
+              style={styles.headerIconBtn}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialCommunityIcons name="magnify" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            {!isBosAracRoom ? (
+              <TouchableOpacity
+                onPress={() => setFilterSheetVisible(true)}
+                style={styles.headerIconBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="filter-outline" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        }
       />
+
+      {searchVisible && (
+        <View style={styles.searchBar}>
+          <MaterialCommunityIcons name="magnify" size={20} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Yük ara..."
+            placeholderTextColor="#9CA3AF"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            onPress={closeSearch}
+            style={styles.searchCloseBtn}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <RoomTabs
         selected={selectedRoom}
         onSelect={handleRoomSelect}
         counts={counts}
       />
-
-      {isBosAracRoom && (
-        <View style={styles.searchRow}>
-          <Ionicons
-            name="search-outline"
-            size={18}
-            color="#9CA3AF"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            value={bosAracSearch}
-            onChangeText={setBosAracSearch}
-            placeholder="Ara... (örn: İstanbul Ankara tır)"
-            placeholderTextColor="#9CA3AF"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {bosAracSearch.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setBosAracSearch('')}
-              style={styles.clearIconBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
 
       {!isBosAracRoom && hasAnyFilter && (
         <TouchableOpacity
@@ -224,6 +275,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   filtreAktifRow: {
     paddingVertical: 8,
     paddingHorizontal: 20,
@@ -234,28 +295,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: PRIMARY,
   },
-  searchRow: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
     marginHorizontal: 20,
-    marginTop: 4,
-    marginBottom: 4,
-    borderRadius: 999,
+    marginTop: 10,
+    marginBottom: 6,
+    borderRadius: 14,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchIcon: {
-    marginRight: 6,
+    height: 44,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: '#111827',
     paddingVertical: 0,
+    marginLeft: 8,
   },
-  clearIconBtn: {
-    marginLeft: 4,
+  searchCloseBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   center: {
     flex: 1,

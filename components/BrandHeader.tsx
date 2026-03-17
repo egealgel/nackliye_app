@@ -15,7 +15,7 @@ const HEADER_BG = '#2563EB';
 const TITLE_FONT_SIZE = 24;
 const LETTER_SPACING = 0.02 * TITLE_FONT_SIZE; // 0.48
 /** Equal-width slots so title stays centered with or without filter/back */
-const SLOT_WIDTH = 44;
+const SLOT_WIDTH = 88;
 
 type Props = {
   title?: string;
