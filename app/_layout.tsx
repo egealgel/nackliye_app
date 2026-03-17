@@ -9,6 +9,8 @@ import { AuthProvider, useAuth } from '@/lib/auth';
 import { UnreadCountProvider } from '@/lib/UnreadCountContext';
 import { initNotificationListeners } from '@/services/notifications';
 import { initAppSettingsCache, refreshAppSettingsCache } from '@/services/pushClient';
+import { ToastProvider, useToast } from '@/components/ToastProvider';
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,6 +41,43 @@ function AppSettingsInit() {
   return null;
 }
 
+function GlobalErrorHandlers() {
+  const toast = useToast();
+
+  useEffect(() => {
+    const prevHandler = (globalThis as any).ErrorUtils?.getGlobalHandler?.();
+    (globalThis as any).ErrorUtils?.setGlobalHandler?.((error: unknown, isFatal?: boolean) => {
+      try {
+        console.error('Global error:', { error, isFatal });
+      } catch {
+        // ignore
+      }
+      toast('Bağlantı hatası, tekrar deneyin');
+      if (typeof prevHandler === 'function') prevHandler(error, isFatal);
+    });
+
+    const prevRejection = (globalThis as any).onunhandledrejection;
+    (globalThis as any).onunhandledrejection = (event: any) => {
+      try {
+        console.error('Unhandled promise rejection:', event?.reason ?? event);
+      } catch {
+        // ignore
+      }
+      toast('Bağlantı hatası, tekrar deneyin');
+      if (typeof prevRejection === 'function') prevRejection(event);
+    };
+
+    return () => {
+      if (typeof prevHandler === 'function') {
+        (globalThis as any).ErrorUtils?.setGlobalHandler?.(prevHandler);
+      }
+      (globalThis as any).onunhandledrejection = prevRejection;
+    };
+  }, [toast]);
+
+  return null;
+}
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Inter_900Black,
@@ -52,21 +91,26 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <NotificationsInit />
-        <AppSettingsInit />
-        <UnreadCountProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="chat" />
-            <Stack.Screen name="edit-load" />
-            <Stack.Screen name="my-load-detail" />
-          </Stack>
-          <StatusBar style="dark" />
-        </UnreadCountProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AppErrorBoundary>
+          <AuthProvider>
+            <NotificationsInit />
+            <AppSettingsInit />
+            <GlobalErrorHandlers />
+            <UnreadCountProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="chat" />
+                <Stack.Screen name="edit-load" />
+                <Stack.Screen name="my-load-detail" />
+              </Stack>
+              <StatusBar style="dark" />
+            </UnreadCountProvider>
+          </AuthProvider>
+        </AppErrorBoundary>
+      </ToastProvider>
     </GestureHandlerRootView>
   );
 }
