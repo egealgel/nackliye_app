@@ -68,15 +68,16 @@ function sortLoadsByStatus<T extends { status: string; created_at: string }>(
 
 function getDateFilterGte(filter: DateFilter): string | null {
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (filter === 'today') return today.toISOString();
+  // Build local-midnight explicitly, then convert to UTC ISO string for Postgres comparison.
+  const localStartOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (filter === 'today') return localStartOfToday.toISOString();
   if (filter === '3days') {
-    const d = new Date(today);
+    const d = new Date(localStartOfToday);
     d.setDate(d.getDate() - 3);
     return d.toISOString();
   }
   if (filter === 'week') {
-    const d = new Date(today);
+    const d = new Date(localStartOfToday);
     const day = d.getDay();
     const mondayOffset = day === 0 ? -6 : 1 - day;
     d.setDate(d.getDate() + mondayOffset);
@@ -106,6 +107,20 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
   const fetchPage = useCallback(async (page: number, replace: boolean) => {
     const statusList = getStatusList(filters.statusFilter);
     const dateGte = getDateFilterGte(filters.dateFilter);
+    const debugStartLocal = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+    if (__DEV__ && filters.dateFilter !== 'all') {
+      console.log('[Odalar][DateFilter][REQUEST]', {
+        vehicleType,
+        dateFilter: filters.dateFilter,
+        statusFilter: filters.statusFilter,
+        dateGte,
+        localStartOfToday: debugStartLocal.toString(),
+        localStartOfTodayISO: debugStartLocal.toISOString(),
+        timezoneOffsetMin: new Date().getTimezoneOffset(),
+        page,
+      });
+    }
 
     let query = supabase
       .from('loads')
@@ -135,6 +150,21 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
     let result = await query;
     let loadsData = result.data;
     let loadsErr = result.error;
+
+    if (__DEV__ && filters.dateFilter !== 'all') {
+      console.log('[Odalar][DateFilter][QUERY_SUMMARY]', {
+        vehicleType,
+        statusList,
+        fromCities: filters.fromCities,
+        toCities: filters.toCities,
+        dateGte,
+        usesAssignedUpdatedAtOnly: filters.statusFilter === 'assigned',
+        pageRange: [page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1],
+        error: loadsErr?.message ?? null,
+        rawCount: loadsData?.length ?? 0,
+        createdAtSamples: (loadsData || []).slice(0, 5).map((x) => x.created_at),
+      });
+    }
 
     if (loadsErr) {
       // If updated_at column doesn't exist (migration not run), retry with created_at for assigned
@@ -234,6 +264,16 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
     }));
 
     const sortedResult = replace ? mapped : sortRoomLoads(mapped);
+
+    if (__DEV__ && filters.dateFilter !== 'all') {
+      console.log('[Odalar][DateFilter][RESULT]', {
+        vehicleType,
+        dateFilter: filters.dateFilter,
+        dateGte,
+        countAfterDistrict: filteredByDistrict.length,
+        countMapped: mapped.length,
+      });
+    }
 
     if (isMounted.current) {
       setHasMore(loadsData.length === PAGE_SIZE);
