@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
@@ -8,21 +7,31 @@ import { supabase } from '@/services/supabase';
 import { getActiveChatContext } from '@/lib/activeChat';
 
 const NOTIFICATION_REQUESTED_KEY = 'notification_permission_requested';
+let Notifications: any = null;
+
+try {
+  Notifications = require('expo-notifications');
+} catch {
+  console.warn('expo-notifications not available');
+}
 
 // Show notifications as alerts when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (Notifications) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 /**
  * Register for push notifications and return the Expo push token.
  * Call on app start when user is logged in.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (!Notifications) return null;
   if (!Device.isDevice) return null;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -83,6 +92,7 @@ let listenersSetup = false;
  * - Tap: deep link to chat or load
  */
 function setupNotificationListeners(): void {
+  if (!Notifications) return;
   if (listenersSetup) return;
   listenersSetup = true;
 
@@ -159,6 +169,7 @@ function handleNotificationTap(data: Record<string, unknown>): void {
  * Setup listeners only. Call on app launch when user is logged in.
  */
 export function initNotificationListeners(): void {
+  if (!Notifications) return;
   setupNotificationListeners();
 }
 
@@ -168,6 +179,7 @@ export function initNotificationListeners(): void {
  * Call from create-load (after success) and chat (after first message send).
  */
 export async function requestNotificationsAfterFirstAction(userId: string): Promise<void> {
+  if (!Notifications) return;
   try {
     const requested = await AsyncStorage.getItem(NOTIFICATION_REQUESTED_KEY);
     if (requested === 'true') return;
