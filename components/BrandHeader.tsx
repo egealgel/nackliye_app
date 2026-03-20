@@ -175,5 +175,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: LETTER_SPACING,
     textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });
