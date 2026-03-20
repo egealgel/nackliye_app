@@ -441,6 +441,19 @@ export default function ChatScreen() {
     }
     const url = `tel:${tel}`;
     try {
+      if (currentUserId && otherUserId && loadId) {
+        await supabase
+          .from('messages')
+          .insert({
+            sender_id: currentUserId,
+            receiver_id: otherUserId,
+            load_id: loadId,
+            content: '📞 Arama yapıldı',
+            message_type: 'call_attempt',
+          })
+          .select('id')
+          .single();
+      }
       const canOpen = await Linking.canOpenURL(url);
       if (!canOpen) {
         Alert.alert('Bilgi', 'Bu cihazda arama yapılamıyor');
