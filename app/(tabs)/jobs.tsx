@@ -349,8 +349,7 @@ function PostedLoadCard({
       {canRateDelivered ? (
         hasReviewed ? (
           <View style={styles.puanlandiBadge}>
-            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-            <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+            <Text style={styles.puanlandiText}>Puanlandı</Text>
           </View>
         ) : (
           <>
@@ -469,8 +468,7 @@ function PostedLoadCard({
       {canRateDelivered ? (
         hasReviewed ? (
           <View style={styles.puanlandiBadge}>
-            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-            <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+            <Text style={styles.puanlandiText}>Puanlandı</Text>
           </View>
         ) : (
           <>
@@ -785,8 +783,7 @@ function TakenLoadCard({
       {canRateDelivered ? (
         hasReviewed ? (
           <View style={styles.puanlandiBadge}>
-            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
-            <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+            <Text style={styles.puanlandiText}>Puanlandı</Text>
           </View>
         ) : (
           <>
@@ -1332,19 +1329,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   puanlandiBadge: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
     marginTop: 10,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F3F4F6',
     borderRadius: 10,
     paddingVertical: 8,
   },
   puanlandiText: {
-    color: '#16A34A',
+    color: '#22C55E',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   // ── Empty / loading ──
