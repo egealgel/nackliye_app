@@ -8,8 +8,9 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -49,6 +50,7 @@ export default function OnboardingScreen() {
   const scrollRef = useRef<ScrollView | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const { width } = Dimensions.get('window');
+  const insets = useSafeAreaInsets();
 
   const isLast = pageIndex === PAGES.length - 1;
 
@@ -87,7 +89,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity
           onPress={setSeenAndGoLogin}
           activeOpacity={0.8}
@@ -118,7 +120,12 @@ export default function OnboardingScreen() {
         ))}
       </ScrollView>
 
-      <View style={styles.bottom}>
+      <View
+        style={[
+          styles.bottom,
+          { marginBottom: Platform.OS === 'ios' ? 60 : 50 },
+        ]}
+      >
         <View style={styles.dotsRow}>{dots}</View>
         <TouchableOpacity
           style={styles.cta}
@@ -138,10 +145,9 @@ const styles = StyleSheet.create({
     backgroundColor: PRIMARY,
   },
   topBar: {
-    height: 56,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
+    paddingRight: 20,
   },
   skipBtn: {
     paddingVertical: 10,
@@ -175,7 +181,6 @@ const styles = StyleSheet.create({
   },
   bottom: {
     paddingHorizontal: 24,
-    paddingBottom: 28,
     paddingTop: 12,
   },
   dotsRow: {
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   dot: {
     width: 10,
