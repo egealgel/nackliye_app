@@ -107,20 +107,6 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
   const fetchPage = useCallback(async (page: number, replace: boolean) => {
     const statusList = getStatusList(filters.statusFilter);
     const dateGte = getDateFilterGte(filters.dateFilter);
-    const debugStartLocal = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-
-    if (__DEV__ && filters.dateFilter !== 'all') {
-      console.log('[Odalar][DateFilter][REQUEST]', {
-        vehicleType,
-        dateFilter: filters.dateFilter,
-        statusFilter: filters.statusFilter,
-        dateGte,
-        localStartOfToday: debugStartLocal.toString(),
-        localStartOfTodayISO: debugStartLocal.toISOString(),
-        timezoneOffsetMin: new Date().getTimezoneOffset(),
-        page,
-      });
-    }
 
     let query = supabase
       .from('loads')
@@ -150,21 +136,6 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
     let result = await query;
     let loadsData = result.data;
     let loadsErr = result.error;
-
-    if (__DEV__ && filters.dateFilter !== 'all') {
-      console.log('[Odalar][DateFilter][QUERY_SUMMARY]', {
-        vehicleType,
-        statusList,
-        fromCities: filters.fromCities,
-        toCities: filters.toCities,
-        dateGte,
-        usesAssignedUpdatedAtOnly: filters.statusFilter === 'assigned',
-        pageRange: [page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1],
-        error: loadsErr?.message ?? null,
-        rawCount: loadsData?.length ?? 0,
-        createdAtSamples: (loadsData || []).slice(0, 5).map((x) => x.created_at),
-      });
-    }
 
     if (loadsErr) {
       // If updated_at column doesn't exist (migration not run), retry with created_at for assigned
@@ -264,16 +235,6 @@ export function useRoomLoads(vehicleType: VehicleType, filters: RoomFilters) {
     }));
 
     const sortedResult = replace ? mapped : sortRoomLoads(mapped);
-
-    if (__DEV__ && filters.dateFilter !== 'all') {
-      console.log('[Odalar][DateFilter][RESULT]', {
-        vehicleType,
-        dateFilter: filters.dateFilter,
-        dateGte,
-        countAfterDistrict: filteredByDistrict.length,
-        countMapped: mapped.length,
-      });
-    }
 
     if (isMounted.current) {
       setHasMore(loadsData.length === PAGE_SIZE);

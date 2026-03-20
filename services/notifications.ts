@@ -17,15 +17,11 @@ if (!isExpoGo && Device.isDevice) {
   if (!__DEV) {
     try {
       Notifications = require('expo-notifications');
-    } catch {
-      console.warn('expo-notifications not available');
-    }
+    } catch {}
   } else {
     try {
       Notifications = require('expo-notifications');
-    } catch {
-      console.warn('expo-notifications not available');
-    }
+    } catch {}
   }
 }
 
@@ -61,7 +57,6 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
   if (!projectId) {
-    console.warn('Push notifications: EAS projectId not found. Add extra.eas.projectId to app.json or EXPO_PUBLIC_EAS_PROJECT_ID env.');
     return null;
   }
 
