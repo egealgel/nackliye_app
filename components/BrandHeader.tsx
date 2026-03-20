@@ -10,6 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNetwork } from '@/components/NetworkProvider';
 
 const HEADER_BG = '#2563EB';
 const TITLE_FONT_SIZE = 24;
@@ -35,6 +37,7 @@ export default function BrandHeader({
   rightElement,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { bannerMode } = useNetwork();
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -76,6 +79,23 @@ export default function BrandHeader({
   return (
     <View style={[styles.wrapper, { paddingTop }]}>
       <ExpoStatusBar style="light" />
+      {bannerMode ? (
+        <View
+          style={[
+            styles.netBanner,
+            bannerMode === 'offline' ? styles.netBannerOffline : styles.netBannerOnline,
+          ]}
+        >
+          <MaterialCommunityIcons
+            name={bannerMode === 'offline' ? 'wifi-off' : 'wifi'}
+            size={13}
+            color="#FFFFFF"
+          />
+          <Text style={styles.netBannerText}>
+            {bannerMode === 'offline' ? 'İnternet bağlantısı yok' : 'Bağlantı sağlandı'}
+          </Text>
+        </View>
+      ) : null}
       <View style={styles.inner}>
         <View style={styles.slot}>
           {leftSlot}
@@ -106,6 +126,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     minHeight: 44,
+  },
+  netBanner: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  netBannerOffline: {
+    backgroundColor: '#EF4444',
+  },
+  netBannerOnline: {
+    backgroundColor: '#22C55E',
+  },
+  netBannerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   slot: {
     width: SLOT_WIDTH,

@@ -1,21 +1,21 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type NetworkContextValue = {
   isOffline: boolean;
+  bannerMode: 'offline' | 'online' | null;
 };
 
-const NetworkContext = createContext<NetworkContextValue>({ isOffline: false });
+const NetworkContext = createContext<NetworkContextValue>({
+  isOffline: false,
+  bannerMode: null,
+});
 
 export function useNetwork() {
   return useContext(NetworkContext);
 }
 
 export function NetworkProvider({ children }: { children: React.ReactNode }) {
-  const insets = useSafeAreaInsets();
   const [isOffline, setIsOffline] = useState(false);
   const [showOnlineBanner, setShowOnlineBanner] = useState(false);
   const prevConnectedRef = useRef<boolean | null>(null);
@@ -67,46 +67,14 @@ export function NetworkProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <NetworkContext.Provider value={{ isOffline }}>
+    <NetworkContext.Provider
+      value={{
+        isOffline,
+        bannerMode: isOffline ? 'offline' : showOnlineBanner ? 'online' : null,
+      }}
+    >
       {children}
-      {isOffline ? (
-        <View style={[styles.banner, styles.offlineBanner, { top: insets.top }]}>
-          <MaterialCommunityIcons name="wifi-off" size={18} color="#FFFFFF" />
-          <Text style={styles.bannerText}>İnternet bağlantısı yok</Text>
-        </View>
-      ) : showOnlineBanner ? (
-        <View style={[styles.banner, styles.onlineBanner, { top: insets.top }]}>
-          <MaterialCommunityIcons name="wifi" size={18} color="#FFFFFF" />
-          <Text style={styles.bannerText}>Bağlantı sağlandı</Text>
-        </View>
-      ) : null}
     </NetworkContext.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  banner: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    zIndex: 9999,
-    minHeight: 38,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-    gap: 8,
-  },
-  offlineBanner: {
-    backgroundColor: '#EF4444',
-  },
-  onlineBanner: {
-    backgroundColor: '#22C55E',
-  },
-  bannerText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
