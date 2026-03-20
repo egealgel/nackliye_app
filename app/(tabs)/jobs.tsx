@@ -18,7 +18,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/services/supabase';
 import { useLoadContactCounts } from '@/hooks/useLoadContactCounts';
+import { useLoadReview } from '@/hooks/useLoadReview';
 import BrandHeader from '@/components/BrandHeader';
+import ReviewModal from '@/components/reviews/ReviewModal';
 import {
   initAppSettingsCache,
   getNotificationBody,
@@ -216,10 +218,12 @@ function useLoadsByField(
 function PostedLoadCard({
   load,
   onRemove,
+  currentUserId,
   contactCount,
 }: {
   load: LoadWithDetails;
   onRemove: (loadId: string) => void;
+  currentUserId: string;
   contactCount?: number;
 }) {
   const router = useRouter();
@@ -230,6 +234,14 @@ function PostedLoadCard({
   const canOpenDetail = ['active', 'has_offers'].includes(load.status);
   const badge = getStatusBadge(load.status);
   const isBosArac = isBosAracLoad(load);
+  const reviewedId = load.assigned_to ?? null;
+  const canRateDelivered = load.status === 'delivered' && !!reviewedId;
+  const { hasReviewed, refresh: refreshReview } = useLoadReview(
+    canRateDelivered ? load.id : null,
+    canRateDelivered ? currentUserId : null,
+    canRateDelivered ? reviewedId : null,
+  );
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const handleEdit = () => {
     if (!canModify) {
@@ -334,6 +346,35 @@ function PostedLoadCard({
           <Text style={styles.waitingText}>Teslim bekleniyor...</Text>
         </View>
       ) : null}
+      {canRateDelivered ? (
+        hasReviewed ? (
+          <View style={styles.puanlandiBadge}>
+            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+            <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.puanlaButton}
+              onPress={() => setShowReviewModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="star" size={18} color="#FFFFFF" />
+              <Text style={styles.puanlaButtonText}>⭐ Puanla</Text>
+            </TouchableOpacity>
+            {reviewedId ? (
+              <ReviewModal
+                visible={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                onSuccess={refreshReview}
+                loadId={load.id}
+                reviewedId={reviewedId}
+                reviewedName={load.assignedDriverName || 'Sürücü'}
+              />
+            ) : null}
+          </>
+        )
+      ) : null}
     </>
   ) : (
     <>
@@ -425,13 +466,42 @@ function PostedLoadCard({
           <Text style={styles.waitingText}>Teslim bekleniyor...</Text>
         </View>
       ) : null}
+      {canRateDelivered ? (
+        hasReviewed ? (
+          <View style={styles.puanlandiBadge}>
+            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+            <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.puanlaButton}
+              onPress={() => setShowReviewModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="star" size={18} color="#FFFFFF" />
+              <Text style={styles.puanlaButtonText}>⭐ Puanla</Text>
+            </TouchableOpacity>
+            {reviewedId ? (
+              <ReviewModal
+                visible={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                onSuccess={refreshReview}
+                loadId={load.id}
+                reviewedId={reviewedId}
+                reviewedName={load.assignedDriverName || 'Sürücü'}
+              />
+            ) : null}
+          </>
+        )
+      ) : null}
     </>
   );
 
   if (canOpenDetail) {
     return (
       <TouchableOpacity
-        style={[styles.card, isDelivered && styles.cardDimmed]}
+        style={[styles.card, isDelivered && !canRateDelivered && styles.cardDimmed]}
         onPress={openDetail}
         activeOpacity={0.8}
       >
@@ -439,7 +509,7 @@ function PostedLoadCard({
       </TouchableOpacity>
     );
   }
-  return <View style={[styles.card, isDelivered && styles.cardDimmed]}>{cardContent}</View>;
+  return <View style={[styles.card, isDelivered && !canRateDelivered && styles.cardDimmed]}>{cardContent}</View>;
 }
 
 // ────────────────────────────────────────────────────────
@@ -457,11 +527,19 @@ function TakenLoadCard({
 }) {
   const router = useRouter();
   const [completing, setCompleting] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const isDelivered = load.status === 'delivered';
   const isAssigned =
     load.status === 'assigned' || load.status === 'in_transit';
   const isBosArac = isBosAracLoad(load);
+  const reviewedId = load.user_id || null;
+  const canRateDelivered = load.status === 'delivered' && !!reviewedId;
+  const { hasReviewed, refresh: refreshReview } = useLoadReview(
+    canRateDelivered ? load.id : null,
+    canRateDelivered ? currentUserId : null,
+    canRateDelivered ? reviewedId : null,
+  );
 
   const openChat = () => {
     router.push({
@@ -593,7 +671,7 @@ function TakenLoadCard({
   };
 
   return (
-    <View style={[styles.card, styles.takenCard, isDelivered && styles.cardDimmed]}>
+    <View style={[styles.card, styles.takenCard, isDelivered && !canRateDelivered && styles.cardDimmed]}>
       {isBosArac ? (
         <>
           <Text style={styles.bosAracCardDescription} numberOfLines={2}>
@@ -704,6 +782,35 @@ function TakenLoadCard({
           </View>
         </View>
       )}
+      {canRateDelivered ? (
+        hasReviewed ? (
+          <View style={styles.puanlandiBadge}>
+            <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+            <Text style={styles.puanlandiText}>Puanlandı ✓</Text>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={styles.puanlaButton}
+              onPress={() => setShowReviewModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="star" size={18} color="#FFFFFF" />
+              <Text style={styles.puanlaButtonText}>⭐ Puanla</Text>
+            </TouchableOpacity>
+            {reviewedId ? (
+              <ReviewModal
+                visible={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                onSuccess={refreshReview}
+                loadId={load.id}
+                reviewedId={reviewedId}
+                reviewedName={load.ownerName || 'İlan Sahibi'}
+              />
+            ) : null}
+          </>
+        )
+      ) : null}
     </View>
   );
 }
@@ -781,6 +888,7 @@ export default function JobsScreen() {
           <PostedLoadCard
             load={item}
             onRemove={posted.removeLoad}
+            currentUserId={currentUserId}
             contactCount={contactCounts[item.id]}
           />
         );
@@ -1206,6 +1314,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  puanlaButton: {
+    backgroundColor: '#F59E0B',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 10,
+    opacity: 1,
+  },
+  puanlaButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  puanlandiBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 10,
+    paddingVertical: 8,
+  },
+  puanlandiText: {
+    color: '#16A34A',
+    fontSize: 14,
+    fontWeight: '700',
   },
 
   // ── Empty / loading ──
