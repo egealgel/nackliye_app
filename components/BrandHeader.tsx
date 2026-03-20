@@ -18,6 +18,8 @@ const TITLE_FONT_SIZE = 24;
 const LETTER_SPACING = 0.02 * TITLE_FONT_SIZE; // 0.48
 /** Equal-width slots so title stays centered with or without filter/back */
 const SLOT_WIDTH = 88;
+const HEADER_CONTENT_HEIGHT = 56;
+const HEADER_BOTTOM_PADDING = 12;
 
 type Props = {
   title?: string;
@@ -120,12 +122,12 @@ const styles = StyleSheet.create({
     backgroundColor: HEADER_BG,
   },
   inner: {
+    height: HEADER_CONTENT_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 44,
+    paddingBottom: HEADER_BOTTOM_PADDING,
   },
   netBanner: {
     width: '100%',
@@ -149,6 +151,7 @@ const styles = StyleSheet.create({
   },
   slot: {
     width: SLOT_WIDTH,
+    height: 40,
     justifyContent: 'center',
   },
   leftSlot: {
