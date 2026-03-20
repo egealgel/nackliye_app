@@ -11,6 +11,7 @@ import { initNotificationListeners, shouldSkipNotifications } from '@/services/n
 import { initAppSettingsCache, refreshAppSettingsCache } from '@/services/pushClient';
 import { ToastProvider, useToast } from '@/components/ToastProvider';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { NetworkProvider } from '@/components/NetworkProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,22 +53,26 @@ function GlobalErrorHandlers() {
   useEffect(() => {
     const prevHandler = (globalThis as any).ErrorUtils?.getGlobalHandler?.();
     (globalThis as any).ErrorUtils?.setGlobalHandler?.((error: unknown, isFatal?: boolean) => {
+      const offline = Boolean((globalThis as any).__YUKUSTU_IS_OFFLINE__);
       try {
         console.error('Global error:', { error, isFatal });
       } catch {
         // ignore
       }
+      if (offline) return;
       toast('Bağlantı hatası, tekrar deneyin');
       if (typeof prevHandler === 'function') prevHandler(error, isFatal);
     });
 
     const prevRejection = (globalThis as any).onunhandledrejection;
     (globalThis as any).onunhandledrejection = (event: any) => {
+      const offline = Boolean((globalThis as any).__YUKUSTU_IS_OFFLINE__);
       try {
         console.error('Unhandled promise rejection:', event?.reason ?? event);
       } catch {
         // ignore
       }
+      if (offline) return;
       toast('Bağlantı hatası, tekrar deneyin');
       if (typeof prevRejection === 'function') prevRejection(event);
     };
@@ -97,24 +102,26 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ToastProvider>
-        <AppErrorBoundary>
-          <AuthProvider>
-            <NotificationsInit />
-            <AppSettingsInit />
-            <GlobalErrorHandlers />
-            <UnreadCountProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="index" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="chat" />
-                <Stack.Screen name="edit-load" />
-                <Stack.Screen name="my-load-detail" />
-              </Stack>
-              <StatusBar style="dark" />
-            </UnreadCountProvider>
-          </AuthProvider>
-        </AppErrorBoundary>
+        <NetworkProvider>
+          <AppErrorBoundary>
+            <AuthProvider>
+              <NotificationsInit />
+              <AppSettingsInit />
+              <GlobalErrorHandlers />
+              <UnreadCountProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="chat" />
+                  <Stack.Screen name="edit-load" />
+                  <Stack.Screen name="my-load-detail" />
+                </Stack>
+                <StatusBar style="dark" />
+              </UnreadCountProvider>
+            </AuthProvider>
+          </AppErrorBoundary>
+        </NetworkProvider>
       </ToastProvider>
     </GestureHandlerRootView>
   );
