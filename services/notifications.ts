@@ -1,18 +1,32 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, LogBox } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import { getActiveChatContext } from '@/lib/activeChat';
 
 const NOTIFICATION_REQUESTED_KEY = 'notification_permission_requested';
+const isExpoGo = Constants.appOwnership === 'expo';
+LogBox.ignoreLogs(['expo-notifications']);
+
 let Notifications: any = null;
 
-try {
-  Notifications = require('expo-notifications');
-} catch {
-  console.warn('expo-notifications not available');
+// Expo Go does not support full push flow; skip notifications there.
+if (!isExpoGo && Device.isDevice) {
+  if (!__DEV) {
+    try {
+      Notifications = require('expo-notifications');
+    } catch {
+      console.warn('expo-notifications not available');
+    }
+  } else {
+    try {
+      Notifications = require('expo-notifications');
+    } catch {
+      console.warn('expo-notifications not available');
+    }
+  }
 }
 
 // Show notifications as alerts when app is in foreground
@@ -31,6 +45,7 @@ if (Notifications) {
  * Call on app start when user is logged in.
  */
 export async function registerForPushNotifications(): Promise<string | null> {
+  if (isExpoGo) return null;
   if (!Notifications) return null;
   if (!Device.isDevice) return null;
 
@@ -68,6 +83,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
  * Save the Expo push token to the user's profile in Supabase.
  */
 export async function savePushToken(userId: string, token: string): Promise<void> {
+  if (isExpoGo) return;
   await supabase
     .from('profiles')
     .update({ expo_push_token: token })
@@ -78,6 +94,7 @@ export async function savePushToken(userId: string, token: string): Promise<void
  * Clear the push token from the user's profile (e.g. on sign out).
  */
 export async function clearPushToken(userId: string): Promise<void> {
+  if (isExpoGo) return;
   await supabase
     .from('profiles')
     .update({ expo_push_token: null })
@@ -92,6 +109,7 @@ let listenersSetup = false;
  * - Tap: deep link to chat or load
  */
 function setupNotificationListeners(): void {
+  if (isExpoGo) return;
   if (!Notifications) return;
   if (listenersSetup) return;
   listenersSetup = true;
@@ -169,6 +187,7 @@ function handleNotificationTap(data: Record<string, unknown>): void {
  * Setup listeners only. Call on app launch when user is logged in.
  */
 export function initNotificationListeners(): void {
+  if (isExpoGo) return;
   if (!Notifications) return;
   setupNotificationListeners();
 }
@@ -179,6 +198,7 @@ export function initNotificationListeners(): void {
  * Call from create-load (after success) and chat (after first message send).
  */
 export async function requestNotificationsAfterFirstAction(userId: string): Promise<void> {
+  if (isExpoGo) return;
   if (!Notifications) return;
   try {
     const requested = await AsyncStorage.getItem(NOTIFICATION_REQUESTED_KEY);
@@ -210,4 +230,8 @@ export async function requestNotificationsAfterFirstAction(userId: string): Prom
   } catch {
     // Silent fail
   }
+}
+
+export function shouldSkipNotifications(): boolean {
+  return isExpoGo || !Device.isDevice || !Notifications;
 }

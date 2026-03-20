@@ -7,7 +7,7 @@ import { useFonts } from '@expo-google-fonts/inter';
 import { Inter_900Black } from '@expo-google-fonts/inter';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { UnreadCountProvider } from '@/lib/UnreadCountContext';
-import { initNotificationListeners } from '@/services/notifications';
+import { initNotificationListeners, shouldSkipNotifications } from '@/services/notifications';
 import { initAppSettingsCache, refreshAppSettingsCache } from '@/services/pushClient';
 import { ToastProvider, useToast } from '@/components/ToastProvider';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
@@ -19,7 +19,12 @@ function NotificationsInit() {
 
   useEffect(() => {
     if (session?.user?.id) {
-      initNotificationListeners();
+      if (shouldSkipNotifications()) return;
+      try {
+        initNotificationListeners();
+      } catch {
+        // Silent: Expo Go / unsupported notification runtime
+      }
     }
   }, [session?.user?.id]);
 
