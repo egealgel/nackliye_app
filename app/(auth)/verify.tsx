@@ -64,22 +64,34 @@ export default function VerifyScreen() {
 
   const verifyOtp = async (otp: string) => {
     setLoading(true);
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: fullPhone,
-      token: otp,
-      type: 'sms',
-    });
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: fullPhone,
+        token: otp,
+        type: 'sms',
+      });
 
-    if (error) {
-      Alert.alert('Hata', error.message);
-      setCode(Array(CODE_LENGTH).fill(''));
-      inputs.current[0]?.focus();
-      return;
-    }
+      if (error) {
+        const raw = String(error.message || '').toLowerCase();
+        const isTokenError =
+          raw.includes('token') || raw.includes('invalid') || raw.includes('expired');
 
-    if (data.session) {
-      router.replace('/');
+        Alert.alert(
+          'Hata',
+          isTokenError
+            ? 'Doğrulama kodu hatalı veya süresi dolmuş. Lütfen tekrar deneyin.'
+            : error.message
+        );
+        setCode(Array(CODE_LENGTH).fill(''));
+        inputs.current[0]?.focus();
+        return;
+      }
+
+      if (data.session) {
+        router.replace('/');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
