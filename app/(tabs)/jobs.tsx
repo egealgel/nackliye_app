@@ -360,7 +360,7 @@ function PostedLoadCard({
               activeOpacity={0.8}
             >
               <Ionicons name="star" size={18} color="#FFFFFF" />
-              <Text style={styles.puanlaButtonText}>⭐ Puanla</Text>
+              <Text style={styles.puanlaButtonText}>Puanla</Text>
             </TouchableOpacity>
             {reviewedId ? (
               <ReviewModal
@@ -480,7 +480,7 @@ function PostedLoadCard({
               activeOpacity={0.8}
             >
               <Ionicons name="star" size={18} color="#FFFFFF" />
-              <Text style={styles.puanlaButtonText}>⭐ Puanla</Text>
+              <Text style={styles.puanlaButtonText}>Puanla</Text>
             </TouchableOpacity>
             {reviewedId ? (
               <ReviewModal
@@ -796,7 +796,7 @@ function TakenLoadCard({
               activeOpacity={0.8}
             >
               <Ionicons name="star" size={18} color="#FFFFFF" />
-              <Text style={styles.puanlaButtonText}>⭐ Puanla</Text>
+              <Text style={styles.puanlaButtonText}>Puanla</Text>
             </TouchableOpacity>
             {reviewedId ? (
               <ReviewModal
