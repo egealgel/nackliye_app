@@ -735,20 +735,24 @@ export default function JobsScreen() {
   const activePostedLoadIds = posted.loads
     .filter((l) => ['active', 'has_offers'].includes(l.status))
     .map((l) => l.id);
-  const contactCounts = useLoadContactCounts(activePostedLoadIds, currentUserId);
+  const {
+    counts: contactCounts,
+    refresh: refreshContactCounts,
+  } = useLoadContactCounts(activePostedLoadIds, currentUserId);
 
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([posted.refresh(), taken.refresh()]);
+    await Promise.all([posted.refresh(), taken.refresh(), refreshContactCounts()]);
     setRefreshing(false);
-  }, [posted.refresh, taken.refresh]);
+  }, [posted.refresh, taken.refresh, refreshContactCounts]);
 
   useFocusEffect(
     useCallback(() => {
       posted.refresh();
       taken.refresh();
-    }, [posted.refresh, taken.refresh]),
+      refreshContactCounts();
+    }, [posted.refresh, taken.refresh, refreshContactCounts]),
   );
 
   const switchTab = useCallback(

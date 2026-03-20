@@ -8,7 +8,7 @@ import { supabase } from '@/services/supabase';
 export function useLoadContactCounts(
   loadIds: string[],
   ownerId: string | undefined,
-): Record<string, number> {
+): { counts: Record<string, number>; refresh: () => Promise<void> } {
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   const fetchCounts = useCallback(async () => {
@@ -20,8 +20,8 @@ export function useLoadContactCounts(
     const { data: messages, error } = await supabase
       .from('messages')
       .select('load_id, sender_id')
-      .eq('receiver_id', ownerId)
       .in('load_id', loadIds)
+      .neq('sender_id', ownerId)
       .in('message_type', ['text', 'image', 'document', 'call_attempt']);
 
     if (error) {
@@ -45,5 +45,5 @@ export function useLoadContactCounts(
     fetchCounts();
   }, [fetchCounts]);
 
-  return counts;
+  return { counts, refresh: fetchCounts };
 }
