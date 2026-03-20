@@ -97,7 +97,7 @@ export default function BrandHeader({
         </View>
       ) : null}
       <View style={styles.inner}>
-        <View style={styles.slot}>
+        <View style={[styles.slot, styles.leftSlot]}>
           {leftSlot}
         </View>
         <Text
@@ -106,7 +106,7 @@ export default function BrandHeader({
         >
           {title}
         </Text>
-        <View style={styles.slot}>
+        <View style={[styles.slot, styles.rightSlot]}>
           {rightSlot}
         </View>
       </View>
@@ -149,8 +149,13 @@ const styles = StyleSheet.create({
   },
   slot: {
     width: SLOT_WIDTH,
-    alignItems: 'center',
     justifyContent: 'center',
+  },
+  leftSlot: {
+    alignItems: 'flex-start',
+  },
+  rightSlot: {
+    alignItems: 'flex-end',
   },
   slotSpacer: {
     width: '100%',
